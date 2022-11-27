@@ -34,13 +34,13 @@ var isRussian: Bool {
     globalLanguage == .russian
 }
 
-class Storage: NSObject {
+public class Storage: NSObject {
     
-    static let shared = Storage()
+    public static let shared = Storage()
     
-    let audioSections: [AudioGroup]
-    let audios: [String:[AudioTrack]]
-    let audioContents: [String:[AudioAtom]]
+    public let audioSections: [AudioGroup]
+    public let audios: [String:[AudioTrack]]
+    public let audioContents: [String:[AudioAtom]]
     
     var surahs: [String:Surah] = [:]
     var enSurahs: [String:Surah] = [:]
@@ -184,7 +184,7 @@ class Storage: NSObject {
     }
     
     @available(iOS 15.0.0, *)
-    func loadAyahAudio(ayahNumber: String, bitRate: UInt, editing: String) async throws -> URL {
+    public func loadAyahAudio(ayahNumber: String, bitRate: UInt, editing: String) async throws -> URL {
         // Compute a path to the URL in the cache
         let filePath = FileManager.default.temporaryDirectory
             .appendingPathComponent(

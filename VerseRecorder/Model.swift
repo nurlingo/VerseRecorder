@@ -19,13 +19,13 @@ protocol Listable {
     var isShown: Int {get}
 }
 
-protocol ContentMolecule {
+public protocol ContentMolecule {
     var id: String {get}
     var title: String {get}
     var atoms: [ContentAtom] {get}
 }
 
-protocol ContentAtom {
+public protocol ContentAtom {
     var id: String {get}
     var text: String {get}
     var meaning: String {get}
@@ -34,9 +34,10 @@ protocol ContentAtom {
 }
 
 
-struct AudioGroup: Decodable, Groupable, Identifiable {
+public struct AudioGroup: Decodable, Groupable, Identifiable {
     
-    let id, ru, en: String
+    public let id: String
+    let ru, en: String
     
     var title: String {
         isRussian ? ru : en
@@ -61,40 +62,41 @@ struct AudioGroup: Decodable, Groupable, Identifiable {
     
 }
 
-struct AudioTrack: Codable, Listable, ContentMolecule {
+public struct AudioTrack: Codable, Listable, ContentMolecule {
     
-    let id, en, ru: String
+    public let id: String
+    let en, ru: String
     let isShown: Int
     
-    var atoms: [ContentAtom] {
+    public var atoms: [ContentAtom] {
         Storage.shared.audioContents[id] ?? []
     }
     
-    var title: String {
+    public var title: String {
         return isRussian ? ru : en
     }
     
 }
 
-struct AudioAtom: Codable, ContentAtom {
+public struct AudioAtom: Codable, ContentAtom {
     
-    var text: String {
+    public var text: String {
         uthmani
     }
     
-    var meaning: String {
+    public var meaning: String {
         isRussian ? ru : en
     }
     
-    var commentary: String {
+    public var commentary: String {
         return isRussian ? ruTranslit : enTranslit
     }
     
-    var image: String {
+    public var image: String {
         ""
     }
     
-    let id: String
+    public let id: String
     let index: Int
     let clean, uthmani: String
     let en, ru: String

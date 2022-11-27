@@ -8,15 +8,25 @@
 
 import Foundation
 
-struct Credentials {
+public struct Credentials {
     let remoteAPI: String
     let username: String
     let password: String
+    
+    public init(remoteAPI: String, username: String, password: String) {
+        self.remoteAPI = remoteAPI
+        self.username = username
+        self.password = password
+    }
 }
 
 class UploaderService {
     
-    let creds: Credentials = credentials
+    let creds: Credentials
+    
+    init(credentials: Credentials) {
+        self.creds = credentials
+    }
     
     private let fileManager = FileManager.default
         

@@ -13,7 +13,7 @@
 import Foundation
 
 // MARK: - MushafMeta
-struct MushafMeta: Codable {
+public struct MushafMeta: Codable {
     let code: Int
     let status: String
     let data: QuranMetaDataClass
@@ -87,7 +87,7 @@ enum RevelationType: String, Codable {
 import Foundation
 
 // MARK: - Quran
-struct Mushaf: Codable {
+public struct Mushaf: Codable {
     let code: Int
     let status: String
     let data: MushafDataClass

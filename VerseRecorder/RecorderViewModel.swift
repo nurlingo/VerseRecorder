@@ -11,6 +11,8 @@ import MediaPlayer
 
 class RecorderViewModel: NSObject, ObservableObject, AVAudioPlayerDelegate, AVAudioRecorderDelegate {
     
+    let credentials: Credentials
+    
     @Published var activeItemId: String = ""
     @Published var progress: Float = 0
     
@@ -38,7 +40,7 @@ class RecorderViewModel: NSObject, ObservableObject, AVAudioPlayerDelegate, AVAu
     @Published var isPlaying: Bool = false
     @Published var isRecording: Bool = false
     
-    let uploader = UploaderService()
+    lazy var uploader = UploaderService(credentials: credentials)
     
     public var tracks: [String] = []
     private var visibleRows: [String:Bool] = [:]
@@ -200,7 +202,9 @@ class RecorderViewModel: NSObject, ObservableObject, AVAudioPlayerDelegate, AVAu
         resetRecorder()
     }
     
-    override init() {
+    init(credentials: Credentials) {
+        self.credentials = credentials
+        
         super.init()
         setupPlayer()
         registerForInterruptions()

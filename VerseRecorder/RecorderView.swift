@@ -13,7 +13,7 @@ struct RecorderView: View {
     let audio: ContentMolecule
     
     @StateObject private var fontVM = FontViewModel()
-    @StateObject private var recorderVM = RecorderViewModel()
+    @StateObject private var recorderVM: RecorderViewModel
     
     enum PlayerMode {
         case player

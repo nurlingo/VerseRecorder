@@ -7,7 +7,7 @@
 
 import Foundation
 
-class FontViewModel: NSObject, ObservableObject {
+public class FontViewModel: NSObject, ObservableObject {
     
     @Published var fontSize: Float = 30.0 {
         didSet {
@@ -18,7 +18,7 @@ class FontViewModel: NSObject, ObservableObject {
     let fontStep: Float = 5.0
     let fontRange: ClosedRange<Float> = 20.00...50.00
     
-    override init() {
+    public override init() {
         super.init()
         setupFont()
     }
