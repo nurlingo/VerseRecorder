@@ -42,7 +42,7 @@ public class Storage: NSObject {
     public let audios: [String:[AudioTrack]]
     public let audioContents: [String:[AudioAtom]]
     
-    var surahs: [String:Surah] = [:]
+    public var surahs: [String:Surah] = [:]
     var enSurahs: [String:Surah] = [:]
     var ruSurahs: [String:Surah] = [:]
     

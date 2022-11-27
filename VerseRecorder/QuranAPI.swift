@@ -16,13 +16,13 @@ import Foundation
 public struct MushafMeta: Codable {
     let code: Int
     let status: String
-    let data: QuranMetaDataClass
+    public let data: QuranMetaDataClass
 }
 
 // MARK: - DataClass
-struct QuranMetaDataClass: Codable {
+public struct QuranMetaDataClass: Codable {
     let ayahs: Ayahs
-    let surahs: Surahs
+    public let surahs: Surahs
     let sajdas: Sajdas
     let rukus, pages, manzils, hizbQuarters: HizbQuarters
     let juzs: HizbQuarters
@@ -57,19 +57,20 @@ struct SajdasReference: Codable {
 }
 
 // MARK: - Surahs
-struct Surahs: Codable {
+public struct Surahs: Codable {
     let count: Int
-    let references: [SurahsReference]
+    public let references: [SurahsReference]
 }
 
 // MARK: - SurahsReference
-struct SurahsReference: Codable, Identifiable {
-    let number: Int
-    let name, englishName, englishNameTranslation: String
+public struct SurahsReference: Codable, Identifiable {
+    public let number: Int
+    public let name: String
+    let englishName, englishNameTranslation: String
     let numberOfAyahs: Int
     let revelationType: RevelationType
     
-    var id: String {
+    public var id: String {
         String(number)
     }
 }
@@ -106,17 +107,17 @@ struct Edition: Codable {
 }
 
 // MARK: - Surah
-struct Surah: Codable, Identifiable, Listable, ContentMolecule {
+public struct Surah: Codable, Identifiable, Listable, ContentMolecule {
     
-    var title: String {
+    public var title: String {
         englishName
     }
     
-    var isShown: Int {
+    public var isShown: Int {
         1
     }
     
-    var atoms: [ContentAtom] {
+    public var atoms: [ContentAtom] {
         ayahs
     }
     
@@ -125,7 +126,7 @@ struct Surah: Codable, Identifiable, Listable, ContentMolecule {
     let revelationType: RevelationType
     var ayahs: [Ayah]
     
-    var id: String {
+    public var id: String {
         String(number)
     }
 }

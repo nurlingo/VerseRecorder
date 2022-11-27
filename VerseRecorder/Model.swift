@@ -13,7 +13,7 @@ protocol Groupable {
     var items: [Listable] { get }
 }
 
-protocol Listable {
+public protocol Listable {
     var id: String {get}
     var title: String {get}
     var isShown: Int {get}
@@ -39,15 +39,15 @@ public struct AudioGroup: Decodable, Groupable, Identifiable {
     public let id: String
     let ru, en: String
     
-    var title: String {
+    public var title: String {
         isRussian ? ru : en
     }
     
-    var isShown: Int {
+    public var isShown: Int {
         1
     }
     
-    var items: [Listable] {
+    public var items: [Listable] {
         
         guard let items = Storage.shared.audios[id] else {
             return []
@@ -66,8 +66,8 @@ public struct AudioTrack: Codable, Listable, ContentMolecule {
     
     public let id: String
     let en, ru: String
-    let isShown: Int
-    
+    public let isShown: Int
+
     public var atoms: [ContentAtom] {
         Storage.shared.audioContents[id] ?? []
     }

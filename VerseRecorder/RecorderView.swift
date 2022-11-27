@@ -7,22 +7,26 @@
 import SwiftUI
 import AVFoundation
 
-struct RecorderView: View {
+public struct RecorderView: View {
     
     @Environment(\.colorScheme) var colorScheme
     let audio: ContentMolecule
     
     @StateObject private var fontVM = FontViewModel()
-    @StateObject private var recorderVM: RecorderViewModel
+    @StateObject private var recorderVM = RecorderViewModel()
     
     enum PlayerMode {
         case player
         case recorder
     }
+    
+    public init(audio: ContentMolecule) {
+        self.audio = audio
+    }
 
     @State private var didLoad = false
     
-    var body: some View {
+    public var body: some View {
         ScrollViewReader { proxy in
             List {
                 ForEach(audio.atoms, id: \.id ) { atom in

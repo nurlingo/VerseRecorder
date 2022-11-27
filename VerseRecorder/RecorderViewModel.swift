@@ -9,10 +9,8 @@
 import AVFoundation
 import MediaPlayer
 
-class RecorderViewModel: NSObject, ObservableObject, AVAudioPlayerDelegate, AVAudioRecorderDelegate {
-    
-    let credentials: Credentials
-    
+public class RecorderViewModel: NSObject, ObservableObject, AVAudioPlayerDelegate, AVAudioRecorderDelegate {
+        
     @Published var activeItemId: String = ""
     @Published var progress: Float = 0
     
@@ -53,7 +51,7 @@ class RecorderViewModel: NSObject, ObservableObject, AVAudioPlayerDelegate, AVAu
         visibleRows[item] ?? false
     }
     
-    public var progressMode: ProgressMode = .durationBased
+    var progressMode: ProgressMode = .durationBased
     public var currentlyActiveIndex: Int {
         if let index = tracks.firstIndex(of: activeItemId) {
             return index
@@ -202,9 +200,7 @@ class RecorderViewModel: NSObject, ObservableObject, AVAudioPlayerDelegate, AVAu
         resetRecorder()
     }
     
-    init(credentials: Credentials) {
-        self.credentials = credentials
-        
+    override init() {        
         super.init()
         setupPlayer()
         registerForInterruptions()
