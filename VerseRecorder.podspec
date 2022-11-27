@@ -20,6 +20,4 @@ Pod::Spec.new do |spec|
     'VerseRecorder/**/*.{swift,h,m,json}'
   ]
 
-  spec.dependency 'SwiftConfettiView'
-
 end
