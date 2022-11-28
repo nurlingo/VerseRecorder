@@ -15,25 +15,30 @@ enum Language: Int {
     case russian = 1
 }
 
-var globalLanguage: Language = {
+
+var globalLanguage: Language {
     
     /// check if language is already set
-    guard let langIndex = UserDefaults.standard.object(forKey: "language") as? Int else {
-        
-        /// if not set the app language according to the device language
-        let langIndex: Int = Locale.current.languageCode == "ru" ? 1 : 0
-        UserDefaults.standard.setValue(langIndex, forKey: "language")
-        UserDefaults.standard.synchronize()
+    if let langIndex = UserDefaults(suiteName: "group.com.nurios.namazapp")?.object(forKey: "language") as? Int {
         return Language(rawValue: langIndex) ?? .english
     }
     
+    /// check if language is already set
+    if let langIndex = UserDefaults.standard.object(forKey: "language") as? Int {
+        return Language(rawValue: langIndex) ?? .english
+    }
+    
+    /// if not set the app language according to the device language
+    let langIndex: Int = Locale.current.languageCode == "ru" ? 1 : 0
     return Language(rawValue: langIndex) ?? .english
-}()
+    
+}
 
 var isRussian: Bool {
     globalLanguage == .russian
 }
 
+@available(iOS 15.0.0, *)
 public class Storage: NSObject {
     
     public static let shared = Storage()

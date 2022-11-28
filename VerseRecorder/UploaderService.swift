@@ -20,6 +20,7 @@ public struct Credentials {
     }
 }
 
+@available(iOS 13.0.0, *)
 class UploaderService {
     
     let creds: Credentials
@@ -99,11 +100,11 @@ class UploaderService {
             
             if let token = dataDict["access_token"] {
                 self.token = token
-                print(self.token)
+//                print(self.token)
             }
             
-            print(response)
-            print(data)
+//            print(response)
+//            print(data)
             
             // handle the result
         } catch {
@@ -129,13 +130,13 @@ class UploaderService {
             
             let dataDict = try JSONDecoder().decode([String:String].self, from: data)
             
-            print(response)
-            print(dataDict)
+//            print(response)
+//            print(dataDict)
             // handle the result
             
             if let user_id = dataDict["user_id"] {
                 self.user_id = user_id
-                print(self.user_id)
+//                print(self.user_id)
             }
             
         } catch {
@@ -192,7 +193,7 @@ class UploaderService {
             data.append("\r\n--\(boundary)--\r\n".data(using: .utf8)!)
             
             let (responseData, response) = try await URLSession.shared.upload(for: request, from: data)
-            print(responseData.first)
+            print(response.textEncodingName)
             self.uploadedRecordingDates[track] = self.recordingDates[track]
             
         } catch {

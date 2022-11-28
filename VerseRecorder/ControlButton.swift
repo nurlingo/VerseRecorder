@@ -7,6 +7,7 @@
 
 import SwiftUI
 
+@available(iOS 13.0.0, *)
 struct ControlButton: View {
     
     let imageName: String

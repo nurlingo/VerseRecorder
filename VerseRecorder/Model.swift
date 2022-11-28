@@ -34,6 +34,7 @@ public protocol ContentAtom {
 }
 
 
+@available(iOS 15.0.0, *)
 public struct AudioGroup: Decodable, Groupable, Identifiable {
     
     public let id: String
@@ -62,6 +63,7 @@ public struct AudioGroup: Decodable, Groupable, Identifiable {
     
 }
 
+@available(iOS 15.0.0, *)
 public struct AudioTrack: Codable, Listable, ContentMolecule {
     
     public let id: String

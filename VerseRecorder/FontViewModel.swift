@@ -7,6 +7,7 @@
 
 import Foundation
 
+@available(iOS 13.0, *)
 public class FontViewModel: NSObject, ObservableObject {
     
     @Published var fontSize: Float = 30.0 {

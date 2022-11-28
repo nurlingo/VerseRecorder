@@ -9,6 +9,7 @@
 import AVFoundation
 import MediaPlayer
 
+@available(iOS 13.0, *)
 public class RecorderViewModel: NSObject, ObservableObject, AVAudioPlayerDelegate, AVAudioRecorderDelegate {
         
     @Published var activeItemId: String = ""
@@ -58,6 +59,16 @@ public class RecorderViewModel: NSObject, ObservableObject, AVAudioPlayerDelegat
         } else {
             return -1
         }
+    }
+    
+    var isWaitingForUpload: Bool {
+        for track in tracks {
+            if recordingExists(track) && !recordingUploaded(track) {
+                return true
+            }
+        }
+        
+        return false
     }
     
     private var audioRecorder: AVAudioRecorder?
@@ -116,7 +127,9 @@ public class RecorderViewModel: NSObject, ObservableObject, AVAudioPlayerDelegat
     public func handleRecordButton() {
         if isRecording {
             finishRecording()
+            activeItemId = tracks.first ?? ""
         } else {
+            stopPlayer()
             startRecording()
         }
     }
@@ -131,6 +144,15 @@ public class RecorderViewModel: NSObject, ObservableObject, AVAudioPlayerDelegat
         }
         
         uploader.uploadNewlyRecordedAudios(tracks)
+        var count = tracks.count
+        Timer.scheduledTimer(withTimeInterval: 2.0, repeats: true) { timer in
+            count -= 1
+            print(count)
+            self.activeItemId = self.activeItemId
+            if count == 0 {
+                timer.invalidate()
+            }
+        }
     }
     
     public func handleRowTap(at rowId: String) {
@@ -388,6 +410,7 @@ public class RecorderViewModel: NSObject, ObservableObject, AVAudioPlayerDelegat
     
 }
 
+@available(iOS 13.0, *)
 extension RecorderViewModel {
     
     private func setupPlayer() {

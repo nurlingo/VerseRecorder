@@ -7,6 +7,7 @@
 import SwiftUI
 import AVFoundation
 
+@available(iOS 15.0, *)
 public struct RecorderView: View {
     
     @Environment(\.colorScheme) var colorScheme
@@ -81,28 +82,28 @@ public struct RecorderView: View {
                             }
                             
                             
-                            Spacer().frame(height:4)
-                            
-                            if !atom.commentary.isEmpty {
-                                Text(atom.commentary)
-                                    .multilineTextAlignment(.leading)
-                                    .frame(maxWidth: .infinity, alignment: .leading)
-                                    .font(Font.system(size: CGFloat(fontVM.fontSize*0.75)))
-                                    .fixedSize(horizontal: false, vertical: true)
-                                    .listRowBackground(Color.clear)
-                                    .onAppear {
-                                        //                                print("appearing:", atom.id)
-                                        recorderVM.setVisibility(for: atom.id, isVisible: true)
-                                    }
-                                
-                            }
+//                            Spacer().frame(height:4)
+//
+//                            if !atom.commentary.isEmpty {
+//                                Text(atom.commentary)
+//                                    .multilineTextAlignment(.leading)
+//                                    .frame(maxWidth: .infinity, alignment: .leading)
+//                                    .font(Font.system(size: CGFloat(fontVM.fontSize*0.75)))
+//                                    .fixedSize(horizontal: false, vertical: true)
+//                                    .listRowBackground(Color.clear)
+//                                    .onAppear {
+//                                        //                                print("appearing:", atom.id)
+//                                        recorderVM.setVisibility(for: atom.id, isVisible: true)
+//                                    }
+//
+//                            }
                             
                             Spacer().frame(height:8)
                             
                             Text(atom.meaning)
                                 .multilineTextAlignment(.leading)
                                 .frame(maxWidth: .infinity, alignment: .leading)
-                                .font(Font.system(size: CGFloat(fontVM.fontSize/2)))
+                                .font(Font.system(size: CGFloat(fontVM.fontSize*0.6)))
                                 .fixedSize(horizontal: false, vertical: true)
                                 .listRowBackground(Color.clear)
                                 .onAppear {
@@ -133,6 +134,7 @@ public struct RecorderView: View {
             if didLoad == false {
                 didLoad = true
                 recorderVM.tracks = audio.atoms.map { $0.id }
+                recorderVM.activeItemId = recorderVM.tracks.first ?? ""
             }
             
         }
@@ -173,6 +175,7 @@ public struct RecorderView: View {
     
 }
 
+@available(iOS 15.0, *)
 struct RecorderControlPanel: View {
     
     @StateObject var recorderVM: RecorderViewModel
@@ -185,7 +188,34 @@ struct RecorderControlPanel: View {
             GeometryReader { geo in
                 HStack{
                     
-                    Spacer().frame(width: 20)
+                    HStack {
+                        Spacer().frame(width: 20)
+                        
+                        if !recorderVM.isRecording,
+                            recorderVM.recordingExists(recorderVM.activeItemId) {
+                            Button {
+                                recorderVM.handlePlayButton()
+                            } label: {
+                                ControlButton(imageName: recorderVM.isPlaying ? "pause.circle" : "play.circle", height: geo.size.height * 0.8)
+                            }
+                            .buttonStyle(PlainButtonStyle())
+                        } else {
+                            Spacer().frame(width: 40)
+                        }
+                    }.frame(width: 60)
+                    
+                    Spacer()
+                    
+                    Button {
+                        recorderVM.handlePreviousButton()
+                        print("backward tapped!")
+                    } label: {
+                        ControlButton(imageName: "backward.fill", height: geo.size.height * 0.4)
+                        
+                    }
+                    .buttonStyle(PlainButtonStyle())
+                    
+                    Spacer()
                     Button {
                         recorderVM.handleRecordButton()
                     } label: {
@@ -201,25 +231,7 @@ struct RecorderControlPanel: View {
                         
                     }
                     .buttonStyle(PlainButtonStyle())
-                    
                     Spacer()
-                    
-                    Button {
-                        recorderVM.handlePreviousButton()
-                        print("backward tapped!")
-                    } label: {
-                        ControlButton(imageName: "backward.fill", height: geo.size.height * 0.4)
-                        
-                    }
-                    .buttonStyle(PlainButtonStyle())
-                    
-                    Button {
-                        recorderVM.handlePlayButton()
-                    } label: {
-                        ControlButton(imageName: recorderVM.isPlaying ? "pause.circle" : "play.circle", height: geo.size.height * 0.8)
-                        
-                    }
-                    .buttonStyle(PlainButtonStyle())
                     
                     Button {
                         recorderVM.handleNextButton()
@@ -231,39 +243,46 @@ struct RecorderControlPanel: View {
                     
                     Spacer()
                     
-                    Button {
-                        print("upload")
-                        isPresentingConfirm = true
-                    } label: {
+                    HStack {
+                        if !recorderVM.isRecording,
+                           recorderVM.isWaitingForUpload {
+                            Button {
+                                print("upload")
+                                isPresentingConfirm = true
+                            } label: {
+                                
+                                VStack {
+                                    Image(systemName: "icloud.and.arrow.up")
+                                        .resizable()
+                                        .scaledToFit()
+                                        .symbolRenderingMode(.palette)
+                                        .foregroundStyle(.blue, .primary)
+                                        .font(.system(size: 16, weight: .light))
+                                        .frame(width: 40, height: geo.size.height * 0.4)
+                                }
+                                .frame(width: geo.size.height * 0.8, height: geo.size.height * 0.8)
+                                .overlay(
+                                    RoundedRectangle(cornerRadius: geo.size.height * 0.4)
+                                        .stroke(.primary, lineWidth: 2)
+                                )
+                            }
+                            .buttonStyle(PlainButtonStyle())
+                            .confirmationDialog("Upload Audios".localized(),
+                              isPresented: $isPresentingConfirm) {
+                                Button("Upload".localized()) {
+                                    recorderVM.handleUploadButton()
+                                }
+                            } message: {
+                                Text("Upload Explanation".localized())
+                            }
+                        } else {
+                            Spacer().frame(width: 40)
+                        }
                         
-                        VStack {
-                            Image(systemName: "icloud.and.arrow.up")
-                                .resizable()
-                                .scaledToFit()
-                                .symbolRenderingMode(.palette)
-                                .foregroundStyle(.blue, .primary)
-                                .font(.system(size: 16, weight: .light))
-                                .frame(width: 40, height: geo.size.height * 0.4)
-                        }
-                        .frame(width: geo.size.height * 0.8, height: geo.size.height * 0.8)
-                        .overlay(
-                            RoundedRectangle(cornerRadius: geo.size.height * 0.4)
-                                .stroke(.primary, lineWidth: 2)
-                        )
-                    }
-                    .buttonStyle(PlainButtonStyle())
-                    .confirmationDialog("Upload recorded audios?",
-                      isPresented: $isPresentingConfirm) {
-                        Button("Upload") {
-                            recorderVM.handleUploadButton()
-                        }
-                    } message: {
-                      Text("Upload recorded audios: We'll use it to train a model that will assess your recitation automatically. InshaAllah you'll get a reward for participating.")
-                    }
+                        Spacer().frame(width: 20)
+                    }.frame(width: 60)
                     
                     
-                    
-                    Spacer().frame(width: 20)
                     
                 }
             }
