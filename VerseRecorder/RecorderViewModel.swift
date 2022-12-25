@@ -38,6 +38,8 @@ public class RecorderViewModel: NSObject, ObservableObject, AVAudioPlayerDelegat
         
     @Published var isPlaying: Bool = false
     @Published var isRecording: Bool = false
+    @Published var isShowingTransliteration = false
+
     
     lazy var uploader = UploaderService(credentials: credentials)
     
@@ -49,7 +51,17 @@ public class RecorderViewModel: NSObject, ObservableObject, AVAudioPlayerDelegat
     }
     
     public func getVisibility(for item: String) -> Bool {
-        visibleRows[item] ?? false
+        
+        guard let index = tracks.firstIndex(of: item),
+              index > 0, /// cannot be first
+              index < tracks.count - 1 /// cannot be last
+        else {
+            return false
+        }
+            
+        /// FIXME: actually depends on direction
+        return visibleRows[tracks[index+1]] ?? false && visibleRows[tracks[index-1]] ?? false
+        
     }
     
     var progressMode: ProgressMode = .durationBased
@@ -155,6 +167,28 @@ public class RecorderViewModel: NSObject, ObservableObject, AVAudioPlayerDelegat
         }
     }
     
+    public func handleDeleteAction(shallDeleteAll: Bool = false) {
+        if isRecording {
+            finishRecording()
+        }
+        
+        if isPlaying {
+            stopPlayer()
+        }
+        
+        if shallDeleteAll {
+            for track in tracks {
+                deleteRecording(track)
+                uploader.removeUploadDate(for: track)
+            }
+        } else {
+            deleteRecording(activeItemId)
+            uploader.removeUploadDate(for: activeItemId)
+        }
+        
+        
+    }
+    
     public func handleRowTap(at rowId: String) {
         self.activeItemId = rowId
         if isPlaying && uploader.didSaveRecording(activeItemId) {
@@ -220,6 +254,17 @@ public class RecorderViewModel: NSObject, ObservableObject, AVAudioPlayerDelegat
     private func finishRecording() {
         uploader.registerRecording(activeItemId)
         resetRecorder()
+    }
+        
+    private func deleteRecording(_ id: String) {
+        if id.isEmpty {
+            return
+        }
+        
+        let audioFilename = getDocumentsDirectory().appendingPathComponent("recording-\(id).m4a")
+        try? fileManager.removeItem(at: audioFilename)
+        
+        activeItemId = self.activeItemId
     }
     
     override init() {        

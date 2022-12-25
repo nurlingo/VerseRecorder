@@ -77,8 +77,11 @@ extension String {
         let en = [
             "Upload Audios": "Upload recorded audios?",
             "Upload": "Send recordings to the developer",
-            "Upload Explanation": "Upload recorded audios: We'll use it to train a model that will assess our users' recitation automatically. InshaAllah you'll get a reward for participating if this endeavour is successful."
-            
+            "Upload Explanation": "Upload recorded audios: We'll use it to train a model that will assess our users' recitation automatically. InshaAllah if this endeavour is successful, we'll all get rewarded by Allah.",
+            "Delete Audio": "Delete?",
+            "Delete Current": "Delete current",
+            "Delete All": "Delete All",
+            "Delete Explanation": "Do you want to delete the recording?",
         ]
         
         return en[self] ?? self
@@ -89,7 +92,11 @@ extension String {
         let ru = [
             "Upload Audios": "Отправить записанные аудио?",
             "Upload": "Поделиться записями с разработчиком",
-            "Upload Explanation": "Мы используем записи для обучения модели искусственного интеллекта, чтобы в будущем уметь оценить правильности чтения автоматически. Если у нас получится внедрить эту модель и она будет полезна людям, то иншаАллах вы получите награду за участие в благом деле."
+            "Upload Explanation": "Мы используем записи для обучения модели искусственного интеллекта, чтобы в будущем уметь оценить правильности чтения автоматически. Если у нас получится внедрить эту модель и она будет полезна людям, то иншаАллаh вы получите награду от Аллаhа за участие в благом деле.",
+            "Delete Audio": "Удалить?",
+            "Delete Current": "Удалить выбранную",
+            "Delete All": "Удалить все",
+            "Delete Explanation": "Вы хотите удалить запись?",
         ]
         
         return ru[self] ?? self

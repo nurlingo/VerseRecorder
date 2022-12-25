@@ -65,6 +65,10 @@ class UploaderService {
         return fileManager.fileExists(atPath: path)
     }
     
+    internal func removeUploadDate(for trackId: String) {
+        recordingDates.removeValue(forKey: trackId)
+    }
+    
     internal func didUploadRecording(_ trackId: String) -> Bool {
         
         guard didSaveRecording(trackId) else {return false}
