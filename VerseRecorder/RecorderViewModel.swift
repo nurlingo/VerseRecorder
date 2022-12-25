@@ -144,12 +144,12 @@ public class RecorderViewModel: NSObject, ObservableObject, AVAudioPlayerDelegat
         }
         
         uploader.uploadNewlyRecordedAudios(tracks)
-        var count = tracks.count
+        var count = tracks.count + 3
         Timer.scheduledTimer(withTimeInterval: 2.0, repeats: true) { timer in
             count -= 1
-            print(count)
+//            print(count)
             self.activeItemId = self.activeItemId
-            if count == 0 {
+            if count <= 0 {
                 timer.invalidate()
             }
         }
@@ -416,6 +416,19 @@ extension RecorderViewModel {
     private func setupPlayer() {
         if let actualSpeedValue = UserDefaults.standard.object(forKey: "playSpeed") as? Float {
             self.speed = actualSpeedValue
+        }
+        
+        do {
+            // play sound even on silent
+            if #available(iOS 10.0, *) {
+                try AVAudioSession.sharedInstance().setCategory(.playAndRecord, options: [.mixWithOthers, .defaultToSpeaker, .allowBluetooth])
+                try AVAudioSession.sharedInstance().setActive(true)
+            } else {
+                AVAudioSession.sharedInstance().perform(NSSelectorFromString("setCategory:error:"), with: AVAudioSession.Category.playAndRecord)
+            }
+            
+        } catch let error as NSError {
+            print(#function, error.description)
         }
         
     }

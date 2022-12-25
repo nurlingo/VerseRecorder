@@ -193,7 +193,7 @@ class UploaderService {
             data.append("\r\n--\(boundary)--\r\n".data(using: .utf8)!)
             
             let (responseData, response) = try await URLSession.shared.upload(for: request, from: data)
-            print(response.textEncodingName)
+//            print(response)
             self.uploadedRecordingDates[track] = self.recordingDates[track]
             
         } catch {
