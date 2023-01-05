@@ -243,4 +243,14 @@ public class Storage: NSObject {
         
     }
     
+    func markAudioAsFullyUploaded(_ audioId: String) {
+        UserDefaults(suiteName: "group.com.nurios.namazapp")?.set(true, forKey: "fully_uploaded_\(audioId)")
+        UserDefaults(suiteName: "group.com.nurios.namazapp")?.synchronize()
+    }
+    
+    func markAudioAsPartiallyUploaded(_ audioId: String) {
+        UserDefaults(suiteName: "group.com.nurios.namazapp")?.set(true, forKey: "partially_uploaded_\(audioId)")
+        UserDefaults(suiteName: "group.com.nurios.namazapp")?.synchronize()
+    }
+    
 }

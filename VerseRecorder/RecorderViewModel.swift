@@ -43,6 +43,7 @@ public class RecorderViewModel: NSObject, ObservableObject, AVAudioPlayerDelegat
     
     lazy var uploader = UploaderService(credentials: credentials)
     
+    public var audioId: String = ""
     public var tracks: [String] = []
     private var visibleRows: [String:Bool] = [:]
     
@@ -155,7 +156,7 @@ public class RecorderViewModel: NSObject, ObservableObject, AVAudioPlayerDelegat
             pausePlayer()
         }
         
-        uploader.uploadNewlyRecordedAudios(tracks)
+        uploader.uploadNewlyRecordedAudios(tracks, for: audioId)
         var count = tracks.count + 3
         Timer.scheduledTimer(withTimeInterval: 2.0, repeats: true) { timer in
             count -= 1

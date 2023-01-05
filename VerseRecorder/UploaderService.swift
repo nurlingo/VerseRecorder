@@ -150,17 +150,30 @@ class UploaderService {
     }
     
     
-    internal func uploadNewlyRecordedAudios(_ tracks: [String]) {
+    internal func uploadNewlyRecordedAudios(_ tracks: [String], for audioId: String) {
         
         Task {
             do {
                 await self.getToken()
                 await self.getClientID()
                 
+                var uploadedAll = true
+                
                 for track in tracks {
                     if didSaveRecording(track) && !didUploadRecording(track) {
                         await self.upload(track)
                     }
+                    
+                    uploadedAll = didUploadRecording(track)
+                }
+                
+                print("upload complete")
+                
+                //FIXME: workaround to encourage people to upload more recordings
+                if uploadedAll {
+                    Storage.shared.markAudioAsFullyUploaded(audioId)
+                } else {
+                    Storage.shared.markAudioAsPartiallyUploaded(audioId)
                 }
                 
             } catch {

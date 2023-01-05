@@ -56,6 +56,7 @@ public struct RecorderView: View {
             .onAppear {
                 if didLoad == false {
                     didLoad = true
+                    recorderVM.audioId = audio.id
                     recorderVM.tracks = audio.atoms.map { $0.id }
                     recorderVM.activeItemId = recorderVM.tracks.first ?? ""
                 }
