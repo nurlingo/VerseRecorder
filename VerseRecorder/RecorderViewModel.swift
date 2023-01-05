@@ -9,7 +9,7 @@
 import AVFoundation
 import MediaPlayer
 
-@available(iOS 13.0, *)
+@available(iOS 15.0, *)
 public class RecorderViewModel: NSObject, ObservableObject, AVAudioPlayerDelegate, AVAudioRecorderDelegate {
         
     @Published var activeItemId: String = ""
@@ -456,7 +456,7 @@ public class RecorderViewModel: NSObject, ObservableObject, AVAudioPlayerDelegat
     
 }
 
-@available(iOS 13.0, *)
+@available(iOS 15.0, *)
 extension RecorderViewModel {
     
     private func setupPlayer() {

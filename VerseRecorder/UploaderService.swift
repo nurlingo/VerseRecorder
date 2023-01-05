@@ -20,7 +20,7 @@ public struct Credentials {
     }
 }
 
-@available(iOS 13.0.0, *)
+@available(iOS 15.0.0, *)
 class UploaderService {
     
     let creds: Credentials
