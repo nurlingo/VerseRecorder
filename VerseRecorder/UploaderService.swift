@@ -183,10 +183,18 @@ class UploaderService {
         
     }
     
-    private func upload(_ track: String) async {
+    private func upload(_ trackId: String) async {
         
-        print("uploading \(track)")
-        let url = URL(string: "\(creds.remoteAPI)audios?client_id=nurios&surra_number=\(Int(track.prefix(3)) ?? 0)&aya_number=\(Int(track.suffix(3)) ?? 0)")!
+        // FIXME: this is not reusable actually.
+        
+        print("uploading \(trackId)")
+        
+        let surahNumber = trackId.prefix(trackId.count-3)
+        let ayahNumber = trackId.suffix(3)
+        print(surahNumber)
+        print(ayahNumber)
+        
+        let url = URL(string: "\(creds.remoteAPI)audios?client_id=nurios&surra_number=\(surahNumber)&aya_number=\(ayahNumber)")!
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.addValue("application/json", forHTTPHeaderField: "Accept")
@@ -197,21 +205,21 @@ class UploaderService {
         request.setValue("multipart/form-data; boundary=\(boundary)", forHTTPHeaderField: "Content-Type")
         
         do {
-            let path = getDocumentsDirectory().appendingPathComponent("recording-\(track).m4a")
+            let path = getDocumentsDirectory().appendingPathComponent("recording-\(trackId).m4a")
             let audioData = try Data(contentsOf: path)
             
             var data = Data()
 
             // Add the image data to the raw http request data
             data.append("\r\n--\(boundary)\r\n".data(using: .utf8)!)
-            data.append("Content-Disposition: form-data; name=\"audio_file\"; filename=\"recording-\(track).m4a\"\r\n".data(using: .utf8)!)
+            data.append("Content-Disposition: form-data; name=\"audio_file\"; filename=\"recording-\(trackId).m4a\"\r\n".data(using: .utf8)!)
             data.append("Content-Type: audio/m4a\r\n\r\n".data(using: .utf8)!)
             data.append(audioData)
             data.append("\r\n--\(boundary)--\r\n".data(using: .utf8)!)
             
             let (responseData, response) = try await URLSession.shared.upload(for: request, from: data)
 //            print(response)
-            self.uploadedRecordingDates[track] = self.recordingDates[track]
+            self.uploadedRecordingDates[trackId] = self.recordingDates[trackId]
             
         } catch {
             print(#file, #function, #line, #column, error.localizedDescription)
