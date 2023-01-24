@@ -24,9 +24,11 @@ public struct Credentials {
 class UploaderService {
     
     let creds: Credentials
+    let clientStorage: RecorderClientStorage
     
-    init(credentials: Credentials) {
+    init(credentials: Credentials, clientStorage: RecorderClientStorage) {
         self.creds = credentials
+        self.clientStorage = clientStorage
     }
     
     private let fileManager = FileManager.default
@@ -157,26 +159,25 @@ class UploaderService {
                 await self.getToken()
                 await self.getClientID()
                 
-                var uploadedAll = true
+                var uploaded = 0
                 
                 for track in tracks {
-                    if didSaveRecording(track) && !didUploadRecording(track) {
+                    
+                    guard didSaveRecording(track) else {continue}
+                    
+                    uploaded += 1
+
+                    if !didUploadRecording(track) {
                         await self.upload(track)
                     }
-                    
-                    uploadedAll = didUploadRecording(track)
                 }
                 
                 print("upload complete")
                 
-                //FIXME: workaround to encourage people to upload more recordings
-                if uploadedAll {
-                    Storage.shared.markAudioAsFullyUploaded(audioId)
-                } else {
-                    Storage.shared.markAudioAsPartiallyUploaded(audioId)
-                }
+                clientStorage.saveUploadProgress(audioId, progress: Double(uploaded)/Double(tracks.count))
                 
             } catch {
+                //FIXME: add catch exceptions
                 print(#file, #function, #line, #column, error.localizedDescription)
             }
         }

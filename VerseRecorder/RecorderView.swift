@@ -13,15 +13,16 @@ public struct RecorderView: View {
     @Environment(\.colorScheme) var colorScheme
     let audio: ContentMolecule
     
-    @StateObject private var recorderVM = RecorderViewModel()
+    @ObservedObject private var recorderVM: RecorderViewModel
     
     enum PlayerMode {
         case player
         case recorder
     }
     
-    public init(audio: ContentMolecule) {
+    public init(audio: ContentMolecule, recorderVM: RecorderViewModel) {
         self.audio = audio
+        self.recorderVM = recorderVM
     }
 
     @State private var didLoad = false

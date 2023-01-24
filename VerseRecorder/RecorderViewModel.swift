@@ -11,7 +11,8 @@ import MediaPlayer
 
 @available(iOS 15.0, *)
 public class RecorderViewModel: NSObject, ObservableObject, AVAudioPlayerDelegate, AVAudioRecorderDelegate {
-        
+    
+    public var clientStorage: RecorderClientStorage
     @Published var activeItemId: String = ""
     @Published var progress: Float = 0
     
@@ -41,7 +42,7 @@ public class RecorderViewModel: NSObject, ObservableObject, AVAudioPlayerDelegat
     @Published var isShowingTransliteration = false
 
     
-    lazy var uploader = UploaderService(credentials: credentials)
+    lazy var uploader = UploaderService(credentials: credentials, clientStorage: clientStorage)
     
     public var audioId: String = ""
     public var tracks: [String] = []
@@ -268,7 +269,8 @@ public class RecorderViewModel: NSObject, ObservableObject, AVAudioPlayerDelegat
         activeItemId = self.activeItemId
     }
     
-    override init() {        
+    public init(clientStorage: RecorderClientStorage) {
+        self.clientStorage = clientStorage
         super.init()
         setupPlayer()
         registerForInterruptions()

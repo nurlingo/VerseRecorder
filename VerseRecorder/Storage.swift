@@ -7,32 +7,9 @@
 
 import Foundation
 
-enum Language: Int {
-    case english = 0
-    case russian = 1
-}
-
-
-var globalLanguage: Language {
-    
-    /// check if language is already set
-    if let langIndex = UserDefaults(suiteName: "group.com.nurios.namazapp")?.object(forKey: "language") as? Int {
-        return Language(rawValue: langIndex) ?? .english
-    }
-    
-    /// check if language is already set
-    if let langIndex = UserDefaults.standard.object(forKey: "language") as? Int {
-        return Language(rawValue: langIndex) ?? .english
-    }
-    
-    /// if not set the app language according to the device language
-    let langIndex: Int = Locale.current.languageCode == "ru" ? 1 : 0
-    return Language(rawValue: langIndex) ?? .english
-    
-}
-
-var isRussian: Bool {
-    globalLanguage == .russian
+public protocol RecorderClientStorage {
+    func saveUploadProgress(_ recordingId: String, progress: Double)
+    func getUploadProgress(_ recordingId: String) -> Double
 }
 
 @available(iOS 15.0.0, *)
@@ -241,16 +218,6 @@ public class Storage: NSObject {
             throw error
         }
         
-    }
-    
-    func markAudioAsFullyUploaded(_ audioId: String) {
-        UserDefaults(suiteName: "group.com.nurios.namazapp")?.set(true, forKey: "fully_uploaded_\(audioId)")
-        UserDefaults(suiteName: "group.com.nurios.namazapp")?.synchronize()
-    }
-    
-    func markAudioAsPartiallyUploaded(_ audioId: String) {
-        UserDefaults(suiteName: "group.com.nurios.namazapp")?.set(true, forKey: "partially_uploaded_\(audioId)")
-        UserDefaults(suiteName: "group.com.nurios.namazapp")?.synchronize()
     }
     
 }
