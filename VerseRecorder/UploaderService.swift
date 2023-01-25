@@ -67,7 +67,7 @@ class UploaderService {
     var token: String = ""
     var user_id: String = ""
     
-    private func getClientID() async {
+    private func getUserID() async {
         
         let url = URL(string: "\(creds.remoteAPI)me")!
         var request = URLRequest(url: url)
@@ -96,13 +96,86 @@ class UploaderService {
 
     }
     
+    private func updateReciterInfo() async {
+        // FIXME: this is not reusable actually.
+        
+        print("updating reciters info")
+        
+        let url: URL
+        
+        let storedReciterId = clientStorage.getReciterId()
+        
+        if storedReciterId.isEmpty {
+            url = URL(string: "\(creds.remoteAPI)reciters")!
+        } else {
+            url = URL(string: "\(creds.remoteAPI)reciters/\(storedReciterId)")!
+        }
+        
+        
+        var request = URLRequest(url: url)
+        
+        if clientStorage.getReciterId().isEmpty {
+            request.httpMethod = "POST"
+        } else {
+            request.httpMethod = "PUT"
+        }
+        
+        request.addValue("application/json", forHTTPHeaderField: "Content-Type")
+        request.addValue("application/json", forHTTPHeaderField: "Accept")
+        request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+        
+        var json: [String: Any] = [
+            "gender": clientStorage.getGender(),
+            "qiraah": clientStorage.getQiraaah(),
+            "platform": clientStorage.getPlatform()
+        ]
+        
+        if !clientStorage.getCountryCode().isEmpty {
+            json["country"] = clientStorage.getCountryCode()
+        }
+        
+        if !clientStorage.getAge().isEmpty {
+            json["age"] = clientStorage.getAge()
+        }
+        
+        do {
+            
+            let jsonData = try JSONSerialization.data(withJSONObject: json, options: .prettyPrinted)
+            let jsonString = String(data: jsonData, encoding: String.Encoding.ascii)!
+//            print (jsonString)
+
+            
+            request.httpBody = jsonData
+            
+            let (data, response) = try await URLSession.shared.data(for: request)
+            
+            if let string = String(data: data, encoding: .utf8) {
+//                print(string)
+            }
+            
+            let dataDict = try JSONDecoder().decode([String:String?].self, from: data)
+            
+            if let fetchedReciterId = dataDict["client_id"] as? String {
+                self.clientStorage.saveReciterId(fetchedReciterId)
+//                print(fetchedReciterId)
+            }
+            
+//            print(response)
+            
+            // handle the result
+        } catch {
+            print(#file, #function, #line, #column,  "updateReciterInfo failed")
+        }
+    }
+    
     
     internal func uploadNewlyRecordedAudios(_ tracks: [String], for audioId: String) {
         
         Task {
             do {
                 await self.getToken()
-                await self.getClientID()
+                await self.getUserID()
+                await self.updateReciterInfo()
                 
                 var uploaded = 0
                 
@@ -140,7 +213,7 @@ class UploaderService {
         print(surahNumber)
         print(ayahNumber)
         
-        let url = URL(string: "\(creds.remoteAPI)audios?client_id=nurios&surra_number=\(surahNumber)&aya_number=\(ayahNumber)")!
+        let url = URL(string: "\(creds.remoteAPI)audios?client_id=\(clientStorage.getReciterId())&surra_number=\(surahNumber)&aya_number=\(ayahNumber)")!
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.addValue("application/json", forHTTPHeaderField: "Accept")
@@ -155,7 +228,7 @@ class UploaderService {
             let audioData = try Data(contentsOf: path)
             
             var data = Data()
-
+            
             // Add the image data to the raw http request data
             data.append("\r\n--\(boundary)\r\n".data(using: .utf8)!)
             data.append("Content-Disposition: form-data; name=\"audio_file\"; filename=\"recording-\(trackId).m4a\"\r\n".data(using: .utf8)!)
@@ -164,6 +237,11 @@ class UploaderService {
             data.append("\r\n--\(boundary)--\r\n".data(using: .utf8)!)
             
             let (responseData, response) = try await URLSession.shared.upload(for: request, from: data)
+            
+            if let string = String(data: responseData, encoding: .utf8) {
+//                print(string)
+            }
+        
 //            print(response)
             recordingStorage.registerUploading(trackId)
             
