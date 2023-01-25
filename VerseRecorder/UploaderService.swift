@@ -24,67 +24,12 @@ public struct Credentials {
 class UploaderService {
     
     let creds: Credentials
-    let clientStorage: RecorderClientStorage
+    let clientStorage: ClientStorage
+    let recordingStorage = RecordingStorage.shared
     
-    init(credentials: Credentials, clientStorage: RecorderClientStorage) {
+    init(credentials: Credentials, clientStorage: ClientStorage) {
         self.creds = credentials
         self.clientStorage = clientStorage
-    }
-    
-    private let fileManager = FileManager.default
-        
-    private var recordingDates: [String:Date] = {
-        if let dict: [String:Date] = UserDefaults.standard.object(forKey: "recordingDates") as? [String:Date] {
-            return dict
-        } else {
-            return [:]
-        }
-    }() {
-        didSet {
-            UserDefaults.standard.set(recordingDates, forKey: "recordingDates")
-        }
-    }
-    
-    private var uploadedRecordingDates: [String:Date] = {
-        if let dict: [String:Date] = UserDefaults.standard.object(forKey: "uploadedRecordingDates") as? [String:Date] {
-            return dict
-        } else {
-            return [:]
-        }
-    }() {
-        didSet {
-            UserDefaults.standard.set(uploadedRecordingDates, forKey: "uploadedRecordingDates")
-        }
-    }
-    
-    
-    internal func registerRecording(_ trackId: String) {
-        recordingDates[trackId] = Date()
-    }
-    
-    internal func didSaveRecording(_ trackId: String) -> Bool {
-        let path = getDocumentsDirectory().appendingPathComponent("recording-\(trackId).m4a").path
-        return fileManager.fileExists(atPath: path)
-    }
-    
-    internal func removeUploadDate(for trackId: String) {
-        recordingDates.removeValue(forKey: trackId)
-    }
-    
-    internal func didUploadRecording(_ trackId: String) -> Bool {
-        
-        guard didSaveRecording(trackId) else {return false}
-        
-        guard self.recordingDates[trackId] != nil else {return false}
-        
-        let didUpload = self.uploadedRecordingDates[trackId] == self.recordingDates[trackId]
-        
-        return didUpload
-    }
-    
-    private func getDocumentsDirectory() -> URL {
-        let paths = fileManager.urls(for: .documentDirectory, in: .userDomainMask)
-        return paths[0]
     }
     
     private func getToken() async {
@@ -163,11 +108,11 @@ class UploaderService {
                 
                 for track in tracks {
                     
-                    guard didSaveRecording(track) else {continue}
+                    guard recordingStorage.doesRecordingExist(track) else {continue}
                     
                     uploaded += 1
 
-                    if !didUploadRecording(track) {
+                    if !recordingStorage.didUploadRecording(track) {
                         await self.upload(track)
                     }
                 }
@@ -206,7 +151,7 @@ class UploaderService {
         request.setValue("multipart/form-data; boundary=\(boundary)", forHTTPHeaderField: "Content-Type")
         
         do {
-            let path = getDocumentsDirectory().appendingPathComponent("recording-\(trackId).m4a")
+            let path = recordingStorage.getPath(for: trackId)
             let audioData = try Data(contentsOf: path)
             
             var data = Data()
@@ -220,7 +165,7 @@ class UploaderService {
             
             let (responseData, response) = try await URLSession.shared.upload(for: request, from: data)
 //            print(response)
-            self.uploadedRecordingDates[trackId] = self.recordingDates[trackId]
+            recordingStorage.registerUploading(trackId)
             
         } catch {
             print(#file, #function, #line, #column, error.localizedDescription)

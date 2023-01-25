@@ -12,7 +12,8 @@ import MediaPlayer
 @available(iOS 15.0, *)
 public class RecorderViewModel: NSObject, ObservableObject, AVAudioPlayerDelegate, AVAudioRecorderDelegate {
     
-    public var clientStorage: RecorderClientStorage
+    public var clientStorage: ClientStorage
+    
     @Published var activeItemId: String = ""
     @Published var progress: Float = 0
     
@@ -41,7 +42,7 @@ public class RecorderViewModel: NSObject, ObservableObject, AVAudioPlayerDelegat
     @Published var isRecording: Bool = false
     @Published var isShowingTransliteration = false
 
-    
+    private var recordingStorage = RecordingStorage.shared
     lazy var uploader = UploaderService(credentials: credentials, clientStorage: clientStorage)
     
     public var audioId: String = ""
@@ -89,7 +90,6 @@ public class RecorderViewModel: NSObject, ObservableObject, AVAudioPlayerDelegat
     private var player: AVAudioPlayer?
     private var updater : CADisplayLink! = nil
     private var runCount: Double = 0
-    private let fileManager = FileManager.default
 
     
     enum ProgressMode {
@@ -180,22 +180,21 @@ public class RecorderViewModel: NSObject, ObservableObject, AVAudioPlayerDelegat
         
         if shallDeleteAll {
             for track in tracks {
-                deleteRecording(track)
-                uploader.removeUploadDate(for: track)
+                recordingStorage.deleteRecording(track)
             }
         } else {
-            deleteRecording(activeItemId)
-            uploader.removeUploadDate(for: activeItemId)
+            recordingStorage.deleteRecording(activeItemId)
         }
         
+        self.activeItemId = self.activeItemId
         
     }
     
     public func handleRowTap(at rowId: String) {
         self.activeItemId = rowId
-        if isPlaying && uploader.didSaveRecording(activeItemId) {
+        if isPlaying && recordingStorage.doesRecordingExist(activeItemId) {
             playFromBundle(itemId: activeItemId)
-        } else if isRecording && uploader.didSaveRecording(activeItemId) {
+        } else if isRecording && recordingStorage.doesRecordingExist(activeItemId) {
             finishRecording()
             startRecording()
         } else {
@@ -205,11 +204,11 @@ public class RecorderViewModel: NSObject, ObservableObject, AVAudioPlayerDelegat
     }
     
     public func recordingExists(_ trackId: String) -> Bool {
-        uploader.didSaveRecording(trackId)
+        recordingStorage.doesRecordingExist(trackId)
     }
     
     public func recordingUploaded(_ trackId: String) -> Bool {
-        uploader.didUploadRecording(trackId)
+        recordingStorage.didUploadRecording(trackId)
     }
     
     public func resetPlayer() {
@@ -232,7 +231,7 @@ public class RecorderViewModel: NSObject, ObservableObject, AVAudioPlayerDelegat
         
         stopPlayer()
         
-        let audioFilename = getDocumentsDirectory().appendingPathComponent("recording-\(activeItemId).m4a")
+        let audioFilename = recordingStorage.getPath(for: activeItemId)
 
         let settings = [
             AVFormatIDKey: Int(kAudioFormatMPEG4AAC),
@@ -254,22 +253,11 @@ public class RecorderViewModel: NSObject, ObservableObject, AVAudioPlayerDelegat
     }
     
     private func finishRecording() {
-        uploader.registerRecording(activeItemId)
+        recordingStorage.registerRecording(activeItemId)
         resetRecorder()
     }
-        
-    private func deleteRecording(_ id: String) {
-        if id.isEmpty {
-            return
-        }
-        
-        let audioFilename = getDocumentsDirectory().appendingPathComponent("recording-\(id).m4a")
-        try? fileManager.removeItem(at: audioFilename)
-        
-        activeItemId = self.activeItemId
-    }
     
-    public init(clientStorage: RecorderClientStorage) {
+    public init(clientStorage: ClientStorage) {
         self.clientStorage = clientStorage
         super.init()
         setupPlayer()
@@ -295,11 +283,6 @@ public class RecorderViewModel: NSObject, ObservableObject, AVAudioPlayerDelegat
         updater = nil
     }
     
-    private func getDocumentsDirectory() -> URL {
-        let paths = fileManager.urls(for: .documentDirectory, in: .userDomainMask)
-        return paths[0]
-    }
-    
     private func playFromBundle(itemId: String) {
         
         if itemId.isEmpty, let first = tracks.first  {
@@ -308,11 +291,10 @@ public class RecorderViewModel: NSObject, ObservableObject, AVAudioPlayerDelegat
             activeItemId = itemId
         }
         
-        let path = getDocumentsDirectory().appendingPathComponent("recording-\(activeItemId).m4a").path
         
-        if fileManager.fileExists(atPath: path) {
+        if recordingStorage.recordingExists(activeItemId) {
             print("FILE AVAILABLE")
-            self.playAudio(at: path)
+            self.playRecroding(activeItemId)
         } else {
             isPlaying = false
         }
@@ -320,9 +302,10 @@ public class RecorderViewModel: NSObject, ObservableObject, AVAudioPlayerDelegat
         
     }
     
-    private func playAudio(at path: String) {
+    private func playRecroding(_ trackId: String) {
         
-        let url = URL(fileURLWithPath: path)
+        let url = recordingStorage.getPath(for: trackId)
+
         player = nil
         removeDurationTracking()
         /// Uncomment for progress by tracks played

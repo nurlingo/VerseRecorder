@@ -7,15 +7,10 @@
 
 import Foundation
 
-public protocol RecorderClientStorage {
-    func saveUploadProgress(_ recordingId: String, progress: Double)
-    func getUploadProgress(_ recordingId: String) -> Double
-}
-
 @available(iOS 15.0.0, *)
-public class Storage: NSObject {
+public class ContentStorage: NSObject {
     
-    public static let shared = Storage()
+    public static let shared = ContentStorage()
     
     public let audioSections: [AudioGroup]
     public let audios: [String:[AudioTrack]]
@@ -41,9 +36,9 @@ public class Storage: NSObject {
     
     public func loadMasahif() async throws {
         do {
-            self.mushaf = try await Storage.shared.fetchQuranEdition(edition: "quran-simple-enhanced")
-            self.ruMushaf = try await Storage.shared.fetchQuranEdition(edition: "ru.kuliev")
-            self.enMushaf = try await Storage.shared.fetchQuranEdition(edition: "en.sahih")
+            self.mushaf = try await ContentStorage.shared.fetchQuranEdition(edition: "quran-simple-enhanced")
+            self.ruMushaf = try await ContentStorage.shared.fetchQuranEdition(edition: "ru.kuliev")
+            self.enMushaf = try await ContentStorage.shared.fetchQuranEdition(edition: "en.sahih")
             
             self.enMushaf?.data.surahs.forEach({
                 self.enSurahs[$0.id] = $0

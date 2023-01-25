@@ -50,7 +50,7 @@ public struct AudioGroup: Decodable, Groupable, Identifiable {
     
     public var items: [Listable] {
         
-        guard let items = Storage.shared.audios[id] else {
+        guard let items = ContentStorage.shared.audios[id] else {
             return []
         }
         
@@ -71,7 +71,7 @@ public struct AudioTrack: Codable, Listable, ContentMolecule {
     public let isShown: Int
 
     public var atoms: [ContentAtom] {
-        Storage.shared.audioContents[id] ?? []
+        ContentStorage.shared.audioContents[id] ?? []
     }
     
     public var title: String {
