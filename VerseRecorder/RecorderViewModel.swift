@@ -253,8 +253,19 @@ public class RecorderViewModel: NSObject, ObservableObject, AVAudioPlayerDelegat
     }
     
     private func finishRecording() {
-        recordingStorage.registerRecording(activeItemId)
+        recordingStorage.registerRecordingDate(activeItemId)
+        saveRecordingProgress()
         resetRecorder()
+    }
+    
+    private func saveRecordingProgress() {
+        var recorded = 0
+        for track in tracks {
+            if recordingStorage.doesRecordingExist(track) {
+                recorded += 1
+            }
+        }
+        clientStorage.saveRecordProgress(audioId, progress: Double(recorded)/Double(tracks.count))
     }
     
     public init(clientStorage: ClientStorage) {

@@ -8,6 +8,10 @@
 import Foundation
 
 public protocol ClientStorage {
+    
+    func saveRecordProgress(_ recordingId: String, progress: Double)
+    func getRecordProgress(_ recordingId: String) -> Double
+    
     func saveUploadProgress(_ recordingId: String, progress: Double)
     func getUploadProgress(_ recordingId: String) -> Double
     

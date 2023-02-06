@@ -50,12 +50,8 @@ class RecordingStorage {
         let audioFilename = getDocumentsDirectory().appendingPathComponent("recording-\(trackId).m4a")
         try? fileManager.removeItem(at: audioFilename)
         
-        unregisterRecording(trackId)
-        
-    }
-    
-    func registerRecording(_ trackId: String) {
-        recordingDates[trackId] = Date()
+        unregisterRecordingDate(trackId)
+        unregisterUploadingDate(trackId)
     }
     
     func doesRecordingExist(_ trackId: String) -> Bool {
@@ -63,16 +59,19 @@ class RecordingStorage {
         return fileManager.fileExists(atPath: path)
     }
     
-    func unregisterRecording(_ trackId: String) {
-        recordingDates.removeValue(forKey: trackId)
-        unregisterUploading(trackId)
+    func registerRecordingDate(_ trackId: String) {
+        recordingDates[trackId] = Date()
     }
     
-    func registerUploading(_ trackId: String) {
+    private func unregisterRecordingDate(_ trackId: String) {
+        recordingDates.removeValue(forKey: trackId)
+    }
+    
+    func registerUploadingDate(_ trackId: String) {
         self.uploadedRecordingDates[trackId] = self.recordingDates[trackId]
     }
     
-    private func unregisterUploading(_ trackId: String) {
+    private func unregisterUploadingDate(_ trackId: String) {
         self.uploadedRecordingDates.removeValue(forKey: trackId)
     }
     

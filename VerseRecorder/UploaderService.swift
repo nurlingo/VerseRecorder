@@ -243,7 +243,7 @@ class UploaderService {
             }
         
 //            print(response)
-            recordingStorage.registerUploading(trackId)
+            recordingStorage.registerUploadingDate(trackId)
             
         } catch {
             print(#file, #function, #line, #column, error.localizedDescription)
