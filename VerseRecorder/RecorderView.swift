@@ -108,7 +108,7 @@ struct RecorderListView: View {
     var body: some View {
         ScrollViewReader { proxy in
             List {
-                if audio.id != "1" {
+                if audio.id != "001" {
                     Text("بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ")
                         .frame(maxWidth: .infinity, alignment: Alignment.topLeading)
                         .font(.uthmanicTahaScript(size: CGFloat(fontVM.fontSize)))
