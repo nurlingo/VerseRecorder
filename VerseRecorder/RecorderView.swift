@@ -11,7 +11,8 @@ import AVFoundation
 public struct RecorderView: View {
     
     @Environment(\.colorScheme) var colorScheme
-    let audio: ContentMolecule
+    let audioId: String
+    let audioTracks: [RecorderItem]
     
     @ObservedObject private var recorderVM: RecorderViewModel
     
@@ -20,8 +21,9 @@ public struct RecorderView: View {
         case recorder
     }
     
-    public init(audio: ContentMolecule, recorderVM: RecorderViewModel) {
-        self.audio = audio
+    public init(audioId: String, audioTracks: [RecorderItem], recorderVM: RecorderViewModel) {
+        self.audioId = audioId
+        self.audioTracks = audioTracks
         self.recorderVM = recorderVM
     }
 
@@ -34,7 +36,7 @@ public struct RecorderView: View {
         if #available(iOS 16.0, *) {
             
             NavigationStack {
-                RecorderListView(audio: audio, recorderVM: recorderVM)
+                RecorderListView(audioId: audioId, audioTracks: audioTracks, recorderVM: recorderVM)
             }
             .toolbar {
                 Button {
@@ -46,7 +48,7 @@ public struct RecorderView: View {
                 }
             }
         } else {
-            RecorderListView(audio: audio, recorderVM: recorderVM)
+            RecorderListView(audioId: audioId, audioTracks: audioTracks, recorderVM: recorderVM)
         }
         
         ProgressView(value: (recorderVM.progress), total: 1)
@@ -57,8 +59,8 @@ public struct RecorderView: View {
             .onAppear {
                 if didLoad == false {
                     didLoad = true
-                    recorderVM.audioId = audio.id
-                    recorderVM.tracks = audio.atoms.map { $0.id }
+                    recorderVM.audioId = audioId
+                    recorderVM.tracks = audioTracks.map { $0.id }
                     recorderVM.activeItemId = recorderVM.tracks.first ?? ""
                 }
                 
@@ -100,7 +102,8 @@ public struct RecorderView: View {
 @available(iOS 15.0, *)
 struct RecorderListView: View {
     
-    let audio: ContentMolecule
+    let audioId: String
+    let audioTracks: [RecorderItem]
     
     @StateObject private var fontVM = FontViewModel()
     @StateObject var recorderVM: RecorderViewModel
@@ -108,7 +111,7 @@ struct RecorderListView: View {
     var body: some View {
         ScrollViewReader { proxy in
             List {
-                if audio.id != "001" {
+                if audioId != "001" {
                     Text("بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ")
                         .frame(maxWidth: .infinity, alignment: Alignment.topLeading)
                         .font(.uthmanicTahaScript(size: CGFloat(fontVM.fontSize)))
@@ -120,10 +123,10 @@ struct RecorderListView: View {
                         .fixedSize(horizontal: false, vertical: true)
                 }
                     
-                ForEach(audio.atoms, id: \.id ) { atom in
+                ForEach(audioTracks, id: \.id ) { track in
                     HStack{
                         Spacer().frame(width:1)
-                        if recorderVM.activeItemId == atom.id {
+                        if recorderVM.activeItemId == track.id {
                             Color.blue.frame(width:3)
                         } else {
                             Color.clear.frame(width:3)
@@ -137,7 +140,7 @@ struct RecorderListView: View {
                             HStack {
 
                                 VStack {
-                                    if recorderVM.recordingExists(atom.id) {
+                                    if recorderVM.recordingExists(track.id) {
                                         Image(systemName: "recordingtape.circle")
                                             .symbolRenderingMode(.palette)
                                             .foregroundStyle(.red, .primary)
@@ -145,7 +148,7 @@ struct RecorderListView: View {
                                     }
                                     Spacer()
                                         .frame(height:4)
-                                    if recorderVM.recordingUploaded(atom.id) {
+                                    if recorderVM.recordingUploaded(track.id) {
                                         Image(systemName: "checkmark.icloud")
                                             .symbolRenderingMode(.palette)
                                             .foregroundStyle(.blue, .primary)
@@ -156,7 +159,7 @@ struct RecorderListView: View {
                                     }
                                 }
 
-                                Text(audio.id != "1" ? atom.text.deletingPrefix("بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ").deletingPrefix("بِّسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ") : atom.text)
+                                Text(audioId != "1" ? track.text.deletingPrefix("بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ").deletingPrefix("بِّسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ") : track.text)
                                     .frame(maxWidth: .infinity, alignment: Alignment.topLeading)
                                     .font(.uthmanicTahaScript(size: CGFloat(fontVM.fontSize)))
                                     .minimumScaleFactor(0.01)
@@ -167,14 +170,14 @@ struct RecorderListView: View {
                                     .fixedSize(horizontal: false, vertical: true)
                                     .onDisappear {
                                         //                            print("disappearing:", atom.id)
-                                        recorderVM.setVisibility(for: atom.id, isVisible: false)
+                                        recorderVM.setVisibility(for: track.id, isVisible: false)
                                     }
                             }
                             
                             Spacer().frame(height:4)
 
-                            if !atom.commentary.isEmpty {
-                                Text(atom.commentary)
+                            if !track.commentary.isEmpty {
+                                Text(track.commentary)
                                     .multilineTextAlignment(.leading)
                                     .frame(maxWidth: .infinity, alignment: .leading)
                                     .font(Font.system(size: CGFloat(fontVM.fontSize*0.75)))
@@ -186,7 +189,7 @@ struct RecorderListView: View {
 
                             Spacer().frame(height:8)
                             
-                            Text(atom.meaning)
+                            Text(track.meaning)
                                 .multilineTextAlignment(.leading)
                                 .frame(maxWidth: .infinity, alignment: .leading)
                                 .font(Font.system(size: CGFloat(fontVM.fontSize*0.6)))
@@ -195,7 +198,7 @@ struct RecorderListView: View {
                             Spacer().frame(height:8)
                                 .onAppear {
                                     //                            print("appearing:", atom.id)
-                                    recorderVM.setVisibility(for: atom.id, isVisible: true)
+                                    recorderVM.setVisibility(for: track.id, isVisible: true)
                                 }
                         }
                         Spacer().frame(width:16)
@@ -203,7 +206,7 @@ struct RecorderListView: View {
                     .listRowBackground(Color.clear)
                     .listRowInsets(EdgeInsets())
                     .onTapGesture {
-                        recorderVM.handleRowTap(at: atom.id)
+                        recorderVM.handleRowTap(at: track.id)
                     }
                 }
             }

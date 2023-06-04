@@ -11,11 +11,6 @@ import Foundation
 public class ContentStorage: NSObject {
     
     public static let shared = ContentStorage()
-    
-    public let audioSections: [AudioGroup]
-    public let audios: [String:[AudioTrack]]
-    public let audioContents: [String:[AudioAtom]]
-    
     public var surahs: [String:Surah] = [:]
     var enSurahs: [String:Surah] = [:]
     var ruSurahs: [String:Surah] = [:]
@@ -25,13 +20,7 @@ public class ContentStorage: NSObject {
     var ruMushaf: Mushaf?
     
     override init() {
-        audioSections = Bundle.main.decode([AudioGroup].self, from: "AudioSection.json")
-        audios = Bundle.main.decode([String:[AudioTrack]].self, from: "AudioDict.json")
-        audioContents = Bundle.main.decode([String:[AudioAtom]].self, from: "AudioContent.json")
-        super.init()
-        
-        
-        
+        super.init()        
     }
     
     public func loadMasahif() async throws {

@@ -107,7 +107,7 @@ struct Edition: Codable {
 }
 
 // MARK: - Surah
-public struct Surah: Codable, Identifiable, Listable, ContentMolecule {
+public struct Surah: Codable, Identifiable {
     
     public var title: String {
         englishName
@@ -117,7 +117,7 @@ public struct Surah: Codable, Identifiable, Listable, ContentMolecule {
         1
     }
     
-    public var atoms: [ContentAtom] {
+    public var atoms: [RecorderItem] {
         ayahs
     }
     
@@ -132,7 +132,7 @@ public struct Surah: Codable, Identifiable, Listable, ContentMolecule {
 }
 
 // MARK: - Ayah
-struct Ayah: Codable, ContentAtom {
+struct Ayah: Codable, RecorderItem {
     var id: String {
         String(number)
     }
