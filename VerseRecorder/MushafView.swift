@@ -11,150 +11,73 @@ import SwiftUI
 import AVFoundation
 import MediaPlayer
 
-// Define a struct to hold the ayah counts for each surah (you can extend this as needed)
-struct QuranData {
+struct SurahNames {
     
-    static var ayatBySurah: [[String]] = {
-        
-        let ayahCounts: [Int: Int] = [
-            1: 7,
-            78: 40,
-            79: 46,
-            80: 42,
-            81: 29,
-            82: 19,
-            83: 36,
-            84: 25,
-            85: 22,
-            86: 17,
-            87: 19,
-            88: 26,
-            89: 30,
-            90: 20,
-            91: 15,
-            92: 21,
-            93: 11,
-            94: 8,
-            95: 8,
-            96: 19,
-            97: 5,
-            98: 8,
-            99: 8,
-            100: 11,
-            101: 11,
-            102: 8,
-            103: 3,
-            104: 9,
-            105: 5,
-            106: 4,
-            107: 7,
-            108: 3,
-            109: 6,
-            110: 3,
-            111: 5,
-            112: 4,
-            113: 5,
-            114: 6
-        ]
-        
-        var nestedAyahNumbers: [[String]] = []
+    static let juzAmma: [Int: (String, String)] = [
+        1: ("الفاتحة", "Al-Fatiha"),
+        78: ("النبأ", "An-Naba"),
+        79: ("النازعات", "An-Nazi'at"),
+        80: ("عبس", "Abasa"),
+        81: ("التكوير", "At-Takwir"),
+        82: ("الإنفطار", "Al-Infitar"),
+        83: ("المطففين", "Al-Mutaffifin"),
+        84: ("الإنشقاق", "Al-Inshiqaq"),
+        85: ("البروج", "Al-Buruj"),
+        86: ("الطارق", "At-Tariq"),
+        87: ("الأعلى", "Al-Ala"),
+        88: ("الغاشية", "Al-Ghashiyah"),
+        89: ("الفجر", "Al-Fajr"),
+        90: ("البلد", "Al-Balad"),
+        91: ("الشمس", "Ash-Shams"),
+        92: ("الليل", "Al-Lail"),
+        93: ("الضحى", "Adh-Dhuha"),
+        94: ("الشرح", "Ash-Sharh"),
+        95: ("التين", "At-Tin"),
+        96: ("العلق", "Al-Alaq"),
+        97: ("القدر", "Al-Qadr"),
+        98: ("البينة", "Al-Bayyina"),
+        99: ("الزلزلة", "Az-Zalzalah"),
+        100: ("العاديات", "Al-Adiyat"),
+        101: ("القارعة", "Al-Qari'a"),
+        102: ("التكاثر", "At-Takathur"),
+        103: ("العصر", "Al-Asr"),
+        104: ("الهمزة", "Al-Humazah"),
+        105: ("الفيل", "Al-Fil"),
+        106: ("قريش", "Quraish"),
+        107: ("الماعون", "Al-Ma'un"),
+        108: ("الكوثر", "Al-Kawthar"),
+        109: ("الكافرون", "Al-Kafirun"),
+        110: ("النصر", "An-Nasr"),
+        111: ("المسد", "Al-Masad"),
+        112: ("الإخلاص", "Al-Ikhlas"),
+        113: ("الفلق", "Al-Falaq"),
+        114: ("الناس", "An-Nas")
+    ]
 
-        for surahNumber in ayahCounts.keys.sorted() {
-            
-            guard let ayahCount = ayahCounts[surahNumber]
-            else {
-                continue
-            }
-            
-            var surahAyahs: [String] = []
-            for ayahNumber in 1...ayahCount {
-                let ayah = String(format: "%03d%03d", surahNumber, ayahNumber)
-                surahAyahs.append(ayah)
-            }
-            
-            nestedAyahNumbers.append(surahAyahs)
-        }
-        
-        return nestedAyahNumbers
-    }()
     
-    static var ayatByPage: [[String]] = {
-        
-        let hafsUthmaniRanges: [Int: [ClosedRange<Int>]] = [
-            1: [1000...1007],
-            582: [78000...78030],
-            583: [78031...78040, 79000...79015],
-            584: [7916...79046],
-            585: [80000...80042],
-            586: [81000...81029],
-            587: [82000...82019, 83000...83006],
-            588: [83007...83034],
-            589: [83035...83036, 84000...84025],
-            590: [85000...85022],
-            591: [86000...86017, 87000...87015],
-            592: [87016...87019, 88000...88026],
-            593: [89000...89023],
-            594: [89024...89030, 89000...89020],
-            595: [91000...91015, 92000...92014],
-            596: [92015...92021, 93000...93011,94000...94008],
-            597: [95000...95008,96000...96019],
-            598: [97000...97005,98000...98007],
-            599: [98008...98008, 99000...99008,100000...100009],
-            600: [100010...100011,101000...101011,102000...102008],
-            601: [103000...103003, 104000...104009, 105000...105005],
-            602: [106000...106004,107000...107007, 108000...108003],
-            603: [109000...109006,110000...110003,111000...111005],
-            604: [112000...112004,113000...113005,114000...114006]
-        ]
-        
-        var nestedAyahNumbers: [[String]] = []
-
-        for pageNumber in pagesToDisplay {
-            
-            guard let pageRanges = hafsUthmaniRanges[pageNumber]
-            else {
-                continue
-            }
-            
-            var pageAyahs: [String] = []
-            
-            for range in pageRanges {
-                range.forEach {
-                    let ayah = String(format: "%06d", $0)
-                    pageAyahs.append(ayah)
-                }
-            }
-            
-            
-            
-            nestedAyahNumbers.append(pageAyahs)
-        }
-        
-        return nestedAyahNumbers
-    }()
-    
-    
-    static var pagesToDisplay: [Int] = {
-        var pages = Array<Int>()
-        pages.append(1)
-        for i in 582...604 {
-            pages.append(i)
-        }
-        return pages
-    }()
 }
+
 
 @available(iOS 15.0.0, *)
 public struct MushafView: View {
     
-    @ObservedObject private var mushafVM = MushafViewModel()
+    @ObservedObject private var mushafVM: MushafViewModel
     
-    public init() {}
+    public init(mushafVM: MushafViewModel) {
+        self.mushafVM = mushafVM
+    }
     
     public var body: some View {
-        
-        Text(String(mushafVM.pages[mushafVM.currentPageIndex]))
-        
+        Spacer()
+        HStack(alignment:.bottom) {
+            Text(SurahNames.juzAmma[Int(mushafVM.activeItemId.dropLast(3)) ?? 1]?.1 ?? "")
+            Spacer()
+            Text(String(mushafVM.pages[mushafVM.currentPageIndex]))
+            Spacer()
+            Text(SurahNames.juzAmma[Int(mushafVM.activeItemId.dropLast(3)) ?? 1]?.0 ?? "")
+        }
+        .padding(.horizontal, 32)
+
         TabView(selection: $mushafVM.currentPageIndex) {
             ForEach(0..<mushafVM.pages.count, id: \.self) { index in
                 Image(String(mushafVM.pages[index]))
@@ -162,7 +85,8 @@ public struct MushafView: View {
                     .aspectRatio(contentMode: .fit)
             }
         }
-        .tabViewStyle(PageTabViewStyle(indexDisplayMode: .automatic))
+        .tabViewStyle(.page(indexDisplayMode: .automatic))
+
 //        .environment(\.layoutDirection, .rightToLeft)
         
         MushafPanel(mushafVM: mushafVM)
@@ -182,22 +106,34 @@ struct MushafPanel: View {
     @StateObject var mushafVM: MushafViewModel
         
     var body: some View {
-        HStack(alignment: .center) {
-            VStack(alignment: .center) {
+        HStack(alignment: .bottom) {
+            VStack(alignment: .leading) {
                 
-                Text(mushafVM.activeItemId.isEmpty ? "Ready to play" : mushafVM.activeItemId)
+                Text(mushafVM.infoMessage)
                 
                 HStack{
+                    
+                    Button {
+                        mushafVM.handleRepeatButton()
+                        print("repeat tapped")
+                    } label: {
+                        Image(systemName: mushafVM.isRepeatOn ? "repeat.circle.fill" : "repeat.circle")
+                            .resizable()
+                            .scaledToFit()
+                            .font(.system(size: 16, weight: .light))
+                            .frame(width: 30, height: 30)
+                    }
+                    .buttonStyle(PlainButtonStyle())
                     
                     Button {
                         mushafVM.handlePreviousButton()
                         print("backward tapped!")
                     } label: {
-                        Image(systemName: "backward.fill")
+                        Image(systemName: "backward.circle")
                             .resizable()
                             .scaledToFit()
                             .font(.system(size: 16, weight: .light))
-                            .frame(width: 40, height: 20)
+                            .frame(width: 30, height: 30)
                     }
                     .buttonStyle(PlainButtonStyle())
                     
@@ -206,11 +142,23 @@ struct MushafPanel: View {
                         mushafVM.handleNextButton()
                         print("forward tapped!")
                     } label: {
-                        Image(systemName: "forward.fill")
+                        Image(systemName: "forward.circle")
                             .resizable()
                             .scaledToFit()
                             .font(.system(size: 16, weight: .light))
-                            .frame(width: 40, height: 20)
+                            .frame(width: 30, height: 30)
+                    }
+                    .buttonStyle(PlainButtonStyle())
+                    
+                    Button {
+                        mushafVM.handleSpeedButton()
+                        print("speed tapped:", mushafVM.speed)
+                    } label: {
+                        Image(systemName: "speedometer")
+                            .resizable()
+                            .scaledToFit()
+                            .font(.system(size: 16, weight: .light))
+                            .frame(width: 30, height: 30)
                     }
                     .buttonStyle(PlainButtonStyle())
                 }
@@ -228,20 +176,20 @@ struct MushafPanel: View {
                 Image(systemName: mushafVM.isPlaying ? "pause.circle" : "play.circle")
                     .resizable()
                     .scaledToFit()
-                    .font(.system(size: 20, weight: .light))
+                    .font(.system(size: 20, weight: .ultraLight))
                     .frame(width: 70, height: 70)
             }
             .buttonStyle(PlainButtonStyle())
         }
         .padding(.horizontal, 32)
-        .padding(.bottom, 16)
+        .padding(.bottom, 24)
     }
 }
 
 
 public enum AudioSource: String {
-    case userRecording
-    case husaryQaloon = "https://www.namaz.live/ar.husary.qaloon"
+    case recording
+    case husaryQaloon = "https://nurlingo.github.io/qaloon/ar.husary"
     case alafasyHafs = "https://cdn.islamic.network/quran/audio/64/ar.alafasy"
     case husaryHafs = "https://cdn.islamic.network/quran/audio/64/ar.husary"
     case abdulbasitHafs = "https://cdn.islamic.network/quran/audio/64/ar.abdulbasitmurattal"
@@ -250,29 +198,53 @@ public enum AudioSource: String {
 @available(iOS 15.0, *)
 public class MushafViewModel: NSObject, ObservableObject, AVAudioPlayerDelegate, AVAudioRecorderDelegate {
     
-    public var pages = QuranData.pagesToDisplay
-    public var tracks: [[String]] = QuranData.ayatByPage
+    public var pages: [Int]
+    public var tracks: [[String]]
     private var audioSource: AudioSource = .alafasyHafs
     
-    @Published var currentPageIndex = 0
-    @Published var activeItemId: String = ""
+    private let speedDict: [Float:Float] = [
+        1.0:1.25,
+        1.25:1.5,
+        1.5:1.75,
+        1.75:2.0,
+        2.0:1.0
+    ]
     
-    @Published var speed: Float = 1.0 {
+    @Published var infoMessage = "Ready to play"
+    
+    @Published var currentPageIndex = UserDefaults.standard.integer(forKey: "currentPageIndex") {
+        didSet {
+            UserDefaults.standard.set(speed, forKey: "currentPageIndex")
+            UserDefaults.standard.synchronize()
+            
+            if player?.isPlaying ?? false {
+                pausePlayer()
+            }
+            activeItemId = tracks[currentPageIndex].first ?? ""
+        }
+    }
+    @Published var activeItemId: String = UserDefaults.standard.string(forKey: "activeItemId") ?? "001000" {
+        didSet {
+            UserDefaults.standard.set(activeItemId, forKey: "activeItemId")
+            UserDefaults.standard.synchronize()
+            self.infoMessage = isPlaying ? String(self.activeItemId.dropFirst(3)) : ""
+        }
+    }
+    
+    @Published var speed: Float = UserDefaults.standard.float(forKey: "playSpeed") {
         didSet {
             UserDefaults.standard.set(speed, forKey: "playSpeed")
             UserDefaults.standard.synchronize()
             
             if let player = player, player.isPlaying {
-                
                 player.stop()
+                player.enableRate = true
                 player.rate = speed
                 player.prepareToPlay()
                 player.play()
             }
         }
     }
-    let step: Float = 0.25
-    let range: ClosedRange<Float> = 1.00...2.00
         
     @Published var isPlaying: Bool = false
     @Published var isRepeatOn: Bool = false
@@ -300,6 +272,12 @@ public class MushafViewModel: NSObject, ObservableObject, AVAudioPlayerDelegate,
         self.audioSource = source
     }
     
+    public func handleRepeatButton() {
+        isRepeatOn.toggle()
+        
+        infoMessage = isRepeatOn ? "Repeat page is enabled" : "Repeat page is disabled"
+    }
+    
     public func handlePlayButton() {
         if let player = player,
             player.isPlaying {
@@ -322,6 +300,12 @@ public class MushafViewModel: NSObject, ObservableObject, AVAudioPlayerDelegate,
         goToPreviousItem()
     }
     
+    public func handleSpeedButton() {
+        speed = speedDict[speed] ?? 1.0
+        
+        infoMessage = "Speed set to \(speed)x"
+    }
+    
     public func resetPlayer() {
         activeItemId = ""
         player?.stop()
@@ -329,7 +313,9 @@ public class MushafViewModel: NSObject, ObservableObject, AVAudioPlayerDelegate,
     }
 
     
-    override public init() {
+    public init(pages: [Int], tracks: [[String]]) {
+        self.pages = pages
+        self.tracks = tracks
         super.init()
         setupPlayer()
         registerForInterruptions()
@@ -352,14 +338,16 @@ public class MushafViewModel: NSObject, ObservableObject, AVAudioPlayerDelegate,
 
         /// detect if it's basmala that needs to be played
         let itemToPlay: String
-        let pattern = ".*[^1]000$"
-        let regex = try! NSRegularExpression(pattern: pattern)
-
-        if let _ = regex.firstMatch(in: activeItemId, range: NSRange(activeItemId.startIndex..., in: activeItemId)) {
-            itemToPlay = "001001"
-        } else {
+//        let pattern = ".*[^1]000$"
+//        let regex = try! NSRegularExpression(pattern: pattern)
+//
+//        if let _ = regex.firstMatch(in: activeItemId, range: NSRange(activeItemId.startIndex..., in: activeItemId)) {
+//            itemToPlay = "001000"
+//        } else {
             itemToPlay = activeItemId
-        }
+//        }
+        
+        
         
         Task {
             do {
@@ -372,14 +360,21 @@ public class MushafViewModel: NSObject, ObservableObject, AVAudioPlayerDelegate,
                 } else if doesAudioExist(for: source, trackId: itemToPlay) {
                     let locallyStoredUrl = getPath(for: source, trackId: itemToPlay)
                     player = try AVAudioPlayer(contentsOf: locallyStoredUrl)
+                } else if source == .husaryQaloon {
+                    
+                    let remoteUrl = URL(string: "\(source.rawValue)/\(itemToPlay).mp3")!
+                    let localAudioURL = getPath(for: source, trackId: itemToPlay)
+                    print(localAudioURL.path)
+                    try await downloadAudio(from: remoteUrl, to: localAudioURL)
+                    player = try AVAudioPlayer(contentsOf: localAudioURL)
+                    
                 } else if let surahNumber = Int(itemToPlay.prefix(3)),
                           let ayahNumber = Int(itemToPlay.suffix(3)) {
-                    
-                    
                     let surah = try await fetchSurah(surahNumber: surahNumber)
                     if let ayah = surah.ayahs.first(where: {$0.numberInSurah == ayahNumber}) {
                         let remoteUrl = URL(string: "\(source.rawValue)/\(ayah.number).mp3")!
-                        let localAudioURL = getPath(for: source, trackId: "\(ayah.number)")
+                        
+                        let localAudioURL = getPath(for: source, trackId: itemToPlay)
                         print(localAudioURL.path)
                         try await downloadAudio(from: remoteUrl, to: localAudioURL)
                         player = try AVAudioPlayer(contentsOf: localAudioURL)
@@ -393,6 +388,8 @@ public class MushafViewModel: NSObject, ObservableObject, AVAudioPlayerDelegate,
                 
                 DispatchQueue.main.async {
                     self.player?.delegate = self
+                    self.player?.enableRate = true
+                    self.player?.rate = self.speed
                     self.player?.prepareToPlay()
                     self.player?.play()
                 }
