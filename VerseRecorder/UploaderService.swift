@@ -169,7 +169,7 @@ class UploaderService {
     }
     
     
-    internal func uploadNewlyRecordedAudios(_ tracks: [String], for audioId: String) {
+    internal func uploadNewlyRecordedAudios(_ tracks: [String], for audioId: String? = nil) {
         
         Task {
             do {
@@ -192,7 +192,10 @@ class UploaderService {
                 
                 print("upload complete")
                 
-                clientStorage.saveUploadProgress(audioId, progress: Double(uploaded)/Double(tracks.count))
+                if let audioId = audioId {
+                    clientStorage.saveUploadProgress(audioId, progress: Double(uploaded)/Double(tracks.count))
+                }
+                
                 
             } catch {
                 //FIXME: add catch exceptions

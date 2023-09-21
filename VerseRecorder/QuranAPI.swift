@@ -106,6 +106,12 @@ struct Edition: Codable {
     let format, type: String
 }
 
+public struct SurahData: Codable {
+    let code: Int
+    let status: String
+    let data: Surah
+}
+
 // MARK: - Surah
 public struct Surah: Codable, Identifiable {
     
