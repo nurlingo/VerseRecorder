@@ -11,6 +11,11 @@ import SwiftUI
 import AVFoundation
 import MediaPlayer
 
+public enum MushafPublication {
+    case hafsMadinan
+    case qaloonMadinan
+}
+
 struct SurahNames {
     
     static let juzAmma: [Int: (String, String)] = [
@@ -83,11 +88,11 @@ public struct MushafView: View {
                 Image(String(mushafVM.pages[index]))
                     .resizable()
                     .aspectRatio(contentMode: .fit)
+                    .scaleEffect(x: -1, y: 1)
             }
         }
         .tabViewStyle(.page(indexDisplayMode: .automatic))
-
-//        .environment(\.layoutDirection, .rightToLeft)
+        .scaleEffect(x: -1, y: 1)
         
         MushafPanel(mushafVM: mushafVM)
             .frame(height: 50)
@@ -198,6 +203,7 @@ public enum AudioSource: String {
 @available(iOS 15.0, *)
 public class MushafViewModel: NSObject, ObservableObject, AVAudioPlayerDelegate, AVAudioRecorderDelegate {
     
+    public var mushafPublication: MushafPublication = .qaloonMadinan
     public var pages: [Int]
     public var tracks: [[String]]
     private var audioSource: AudioSource = .alafasyHafs
@@ -214,6 +220,7 @@ public class MushafViewModel: NSObject, ObservableObject, AVAudioPlayerDelegate,
     
     @Published var currentPageIndex = UserDefaults.standard.integer(forKey: "currentPageIndex") {
         didSet {
+            print(currentPageIndex)
             UserDefaults.standard.set(speed, forKey: "currentPageIndex")
             UserDefaults.standard.synchronize()
             
@@ -318,6 +325,7 @@ public class MushafViewModel: NSObject, ObservableObject, AVAudioPlayerDelegate,
         self.tracks = tracks
         super.init()
         setupPlayer()
+        setupRemoteTransportControls()
         registerForInterruptions()
     }
     
@@ -336,17 +344,21 @@ public class MushafViewModel: NSObject, ObservableObject, AVAudioPlayerDelegate,
             activeItemId = itemId
         }
 
-        /// detect if it's basmala that needs to be played
         let itemToPlay: String
-//        let pattern = ".*[^1]000$"
-//        let regex = try! NSRegularExpression(pattern: pattern)
-//
-//        if let _ = regex.firstMatch(in: activeItemId, range: NSRange(activeItemId.startIndex..., in: activeItemId)) {
-//            itemToPlay = "001000"
-//        } else {
-            itemToPlay = activeItemId
-//        }
         
+        if mushafPublication == MushafPublication.hafsMadinan {
+            /// detect if it's basmala that needs to be played
+            let pattern = ".*[^1]000$"
+            let regex = try! NSRegularExpression(pattern: pattern)
+
+            if let _ = regex.firstMatch(in: activeItemId, range: NSRange(activeItemId.startIndex..., in: activeItemId)) {
+                itemToPlay = "001000"
+            } else {
+                itemToPlay = activeItemId
+            }
+        } else {
+            itemToPlay = activeItemId
+        }
         
         
         Task {
@@ -392,6 +404,7 @@ public class MushafViewModel: NSObject, ObservableObject, AVAudioPlayerDelegate,
                     self.player?.rate = self.speed
                     self.player?.prepareToPlay()
                     self.player?.play()
+                    self.setupNowPlaying()
                 }
                 
                 
@@ -408,11 +421,13 @@ public class MushafViewModel: NSObject, ObservableObject, AVAudioPlayerDelegate,
     
     private func pausePlayer() {
         isPlaying = false
+        updateNowPlaying()
         self.player?.pause()
     }
     
     private func stopPlayer() {
         isPlaying = false
+        updateNowPlaying()
         self.player?.stop()
     }
     
@@ -500,19 +515,12 @@ public class MushafViewModel: NSObject, ObservableObject, AVAudioPlayerDelegate,
 }
 
 @available(iOS 15.0, *)
-extension MushafViewModel {
+extension MushafViewModel: AVAudioPlayerDelegate {
     
     private func setupPlayer() {
         if let actualSpeedValue = UserDefaults.standard.object(forKey: "playSpeed") as? Float {
             self.speed = actualSpeedValue
         }
-        
-        do {
-            AVAudioSession.sharedInstance().perform(NSSelectorFromString("setCategory:error:"), with: AVAudioSession.Category.playAndRecord)
-        } catch let error as NSError {
-            print(#function, error.description)
-        }
-        
     }
     
     private func registerForInterruptions() {
@@ -535,6 +543,86 @@ extension MushafViewModel {
         }
         
     }
+    
+    private func setupRemoteTransportControls() {
+
+        // Get the shared MPRemoteCommandCenter
+        let commandCenter = MPRemoteCommandCenter.shared()
+        
+        // Add handler for Play Command
+        commandCenter.playCommand.isEnabled = true
+        commandCenter.playCommand.addTarget { [unowned self] event in
+            print("Play command - is playing: \(self.isPlaying)")
+            if !self.isPlaying {
+                self.handlePlayButton()
+                return .success
+            }
+            return .commandFailed
+        }
+        
+        // Add handler for Pause Command
+        commandCenter.pauseCommand.isEnabled = true
+        commandCenter.pauseCommand.addTarget { [unowned self] event in
+            print("Pause command - is playing: \(self.isPlaying)")
+            if self.isPlaying {
+                self.handlePlayButton()
+                return .success
+            }
+            return .commandFailed
+        }
+        
+        commandCenter.nextTrackCommand.isEnabled = true
+        commandCenter.nextTrackCommand.addTarget { [unowned self] event in
+            print("Next command - is playing: \(self.isPlaying)")
+            self.handleNextButton()
+            return .success
+        }
+        
+        commandCenter.previousTrackCommand.isEnabled = true
+        commandCenter.previousTrackCommand.addTarget { [unowned self] event in
+            print("Previous command - is playing: \(self.isPlaying)")
+            self.handlePreviousButton()
+            return .success
+        }
+    }
+    
+    private func setupNowPlaying() {
+        
+        // Define Now Playing Info
+        var nowPlayingInfo = [String : Any]()
+        nowPlayingInfo[MPMediaItemPropertyTitle] = activeItemId
+        
+        if let image = UIImage(named: "AppIcon") {
+            nowPlayingInfo[MPMediaItemPropertyArtwork] = MPMediaItemArtwork(boundsSize: image.size) { size in
+                return image
+            }
+        }
+        
+        guard let player = player else { return }
+        nowPlayingInfo[MPNowPlayingInfoPropertyElapsedPlaybackTime] = player.currentTime
+        nowPlayingInfo[MPMediaItemPropertyPlaybackDuration] = player.duration
+        nowPlayingInfo[MPNowPlayingInfoPropertyPlaybackRate] = player.rate
+        
+        // Set the metadata
+        MPNowPlayingInfoCenter.default().nowPlayingInfo = nowPlayingInfo
+        
+//        print("Now playing local: \(nowPlayingInfo)")
+//        print("Now playing lock screen: \(MPNowPlayingInfoCenter.default().nowPlayingInfo)")
+    }
+    
+    private func updateNowPlaying() {
+        // Define Now Playing Info
+        
+        guard var nowPlayingInfo = MPNowPlayingInfoCenter.default().nowPlayingInfo,
+              let player = player else { return }
+        
+        nowPlayingInfo[MPNowPlayingInfoPropertyElapsedPlaybackTime] = player.currentTime
+        nowPlayingInfo[MPNowPlayingInfoPropertyPlaybackRate] = isPlaying ? 1 : 0
+        
+        // Set the metadata
+        MPNowPlayingInfoCenter.default().nowPlayingInfo = nowPlayingInfo
+    }
+    
 }
 
 
