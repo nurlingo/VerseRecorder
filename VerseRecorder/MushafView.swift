@@ -72,24 +72,43 @@ public struct MushafView: View {
         self.mushafVM = mushafVM
     }
     
+    @State private var imageSize: CGSize = .zero
+    
     public var body: some View {
-        Spacer()
-        HStack(alignment:.bottom) {
+        HStack(alignment: .bottom) {
             Text(SurahNames.juzAmma[Int(mushafVM.activeItemId.dropLast(3)) ?? 1]?.1 ?? "")
             Spacer()
-            Text(String(mushafVM.pages[mushafVM.currentPageIndex]))
+            Text(String(mushafVM.pages[mushafVM.currentRangeIndex]))
             Spacer()
             Text(SurahNames.juzAmma[Int(mushafVM.activeItemId.dropLast(3)) ?? 1]?.0 ?? "")
         }
         .padding(.horizontal, 32)
 
-        TabView(selection: $mushafVM.currentPageIndex) {
+        TabView(selection: $mushafVM.currentRangeIndex) {
             ForEach(0..<mushafVM.pages.count, id: \.self) { index in
-                Image(String(mushafVM.pages[index]))
-                    .resizable()
-                    .aspectRatio(contentMode: .fit)
-                    .scaleEffect(x: -1, y: 1)
+                GeometryReader { geometry in
+                    Image(String(mushafVM.pages[index])) // Replace with the name of your image asset
+                        .resizable()
+                        .aspectRatio(contentMode: .fit)
+                        .onAppear {
+                            imageSize = CGSize(width: geometry.size.width, height: geometry.size.height)
+                            print("Image size: \(imageSize)")
+                        }
+                        .overlay(
+                            ForEach(mushafVM.ayahRectangles) { rectangle in
+                                Rectangle()
+                                    .fill(Color.yellow) // Change color as needed
+                                    .opacity(0.2) // Change opacity as needed
+                                    .frame(width: rectangle.rect.width * min(imageSize.width/728, imageSize.height/1131), height: rectangle.rect.height * min(imageSize.width/728, imageSize.height/1131))
+                                    .position(x: (rectangle.rect.origin.x + rectangle.rect.size.width / 2) * min(imageSize.width/728, imageSize.height/1131) + 1,
+                                              y: (rectangle.rect.origin.y + rectangle.rect.size.height / 2) * min(imageSize.width/728, imageSize.height/1131))
+                            }
+                        )
+                        .scaleEffect(x: -1, y: 1)
+                }
+                
             }
+            
         }
         .tabViewStyle(.page(indexDisplayMode: .automatic))
         .scaleEffect(x: -1, y: 1)
@@ -98,7 +117,7 @@ public struct MushafView: View {
             .frame(height: 50)
             .onDisappear {
                 mushafVM.resetPlayer()
-//                mushafVM.resetRecorder()
+                //                mushafVM.resetRecorder()
             }
     }
     
@@ -109,7 +128,7 @@ public struct MushafView: View {
 struct MushafPanel: View {
     
     @StateObject var mushafVM: MushafViewModel
-        
+    
     var body: some View {
         HStack(alignment: .bottom) {
             VStack(alignment: .leading) {
@@ -205,7 +224,8 @@ public class MushafViewModel: NSObject, ObservableObject, AVAudioPlayerDelegate,
     
     public var mushafPublication: MushafPublication = .qaloonMadinan
     public var pages: [Int]
-    public var tracks: [[String]]
+    public var ayahRanges: [[String]]
+    public var pageCoordinates: [Page]
     private var audioSource: AudioSource = .alafasyHafs
     
     private let speedDict: [Float:Float] = [
@@ -216,18 +236,20 @@ public class MushafViewModel: NSObject, ObservableObject, AVAudioPlayerDelegate,
         2.0:1.0
     ]
     
+    @Published var ayahRectangles: [RectangleData] = []
+    
     @Published var infoMessage = "Ready to play"
     
-    @Published var currentPageIndex = UserDefaults.standard.integer(forKey: "currentPageIndex") {
+    @Published var currentRangeIndex = UserDefaults.standard.integer(forKey: "currentPageIndex") {
         didSet {
-            print(currentPageIndex)
+            print(currentRangeIndex)
             UserDefaults.standard.set(speed, forKey: "currentPageIndex")
             UserDefaults.standard.synchronize()
             
             if player?.isPlaying ?? false {
                 pausePlayer()
             }
-            activeItemId = tracks[currentPageIndex].first ?? ""
+            activeItemId = ayahRanges[currentRangeIndex].first ?? ""
         }
     }
     @Published var activeItemId: String = UserDefaults.standard.string(forKey: "activeItemId") ?? "001000" {
@@ -258,7 +280,7 @@ public class MushafViewModel: NSObject, ObservableObject, AVAudioPlayerDelegate,
     @Published var isShowingText = false
         
     public var activeItemIndex: Int {
-        if let index = tracks[currentPageIndex].firstIndex(of: activeItemId) {
+        if let index = ayahRanges[currentRangeIndex].firstIndex(of: activeItemId) {
             return index
         } else {
             return -1
@@ -287,7 +309,7 @@ public class MushafViewModel: NSObject, ObservableObject, AVAudioPlayerDelegate,
     
     public func handlePlayButton() {
         if let player = player,
-            player.isPlaying {
+           player.isPlaying {
             /// pause the player
             pausePlayer()
             return
@@ -318,11 +340,12 @@ public class MushafViewModel: NSObject, ObservableObject, AVAudioPlayerDelegate,
         player?.stop()
         player = nil
     }
-
     
-    public init(pages: [Int], tracks: [[String]]) {
+    
+    public init(pages: [Int], ayahRanges: [[String]], pageCoordinates: [Page]) {
         self.pages = pages
-        self.tracks = tracks
+        self.ayahRanges = ayahRanges
+        self.pageCoordinates = pageCoordinates
         super.init()
         setupPlayer()
         setupRemoteTransportControls()
@@ -338,19 +361,19 @@ public class MushafViewModel: NSObject, ObservableObject, AVAudioPlayerDelegate,
     
     private func play(from source: AudioSource = .husaryHafs, itemId: String) {
         
-        if itemId.isEmpty, let first = tracks[currentPageIndex].first  {
+        if itemId.isEmpty, let first = ayahRanges[currentRangeIndex].first  {
             activeItemId = first
         } else {
             activeItemId = itemId
         }
-
+        
         let itemToPlay: String
         
         if mushafPublication == MushafPublication.hafsMadinan {
             /// detect if it's basmala that needs to be played
             let pattern = ".*[^1]000$"
             let regex = try! NSRegularExpression(pattern: pattern)
-
+            
             if let _ = regex.firstMatch(in: activeItemId, range: NSRange(activeItemId.startIndex..., in: activeItemId)) {
                 itemToPlay = "001000"
             } else {
@@ -358,6 +381,33 @@ public class MushafViewModel: NSObject, ObservableObject, AVAudioPlayerDelegate,
             }
         } else {
             itemToPlay = activeItemId
+            
+            
+            if let pageCoordinates = pageCoordinates.first(where: {$0.pageNumber == pages[currentRangeIndex]}),
+               let surahNumber = Int(itemToPlay.prefix(3)),
+               let ayahNumber = Int(itemToPlay.suffix(3)),
+               let ayahCoordinates = pageCoordinates.ayahs.first(where: {$0.surahNumber == surahNumber && $0.ayahNumber == ayahNumber})  {
+                
+                
+                ayahRectangles = []
+                for line in ayahCoordinates.lines {
+                    
+                    if let lastPoint = line.last,
+                       let firstPoint = line.first {
+                        let x = lastPoint.x
+                        let y = min(firstPoint.y1,firstPoint.y2)
+                        let height = abs(firstPoint.y1 - firstPoint.y2)
+                        let width = abs(firstPoint.x-lastPoint.x)
+                        ayahRectangles.append(RectangleData(rect:CGRect(x: x, y: y, width: width, height: height)))
+                    }
+                    
+                    
+                }
+                print("Ayah rectangles: \(ayahRectangles)")
+
+                
+            }
+            
         }
         
         
@@ -368,7 +418,7 @@ public class MushafViewModel: NSObject, ObservableObject, AVAudioPlayerDelegate,
                     
                     let defaultAudioURL = URL(fileURLWithPath: path)
                     player = try AVAudioPlayer(contentsOf: defaultAudioURL)
-
+                    
                 } else if doesAudioExist(for: source, trackId: itemToPlay) {
                     let locallyStoredUrl = getPath(for: source, trackId: itemToPlay)
                     player = try AVAudioPlayer(contentsOf: locallyStoredUrl)
@@ -412,10 +462,6 @@ public class MushafViewModel: NSObject, ObservableObject, AVAudioPlayerDelegate,
                 print(#function, error.description)
             }
         }
-                
-        
-        
-        
         
     }
     
@@ -433,23 +479,33 @@ public class MushafViewModel: NSObject, ObservableObject, AVAudioPlayerDelegate,
     
     private func goToNextItem(){
         if activeItemIndex < 0 {
-            activeItemId = tracks[currentPageIndex].first ?? ""
+            /// player is inactive
+            /// start from the first ayah in the current range
+            activeItemId = ayahRanges[currentRangeIndex].first ?? ""
             play(itemId: activeItemId)
-        } else if activeItemIndex < tracks[currentPageIndex].count - 1 { /// moreItemsAhead
-            self.activeItemId = tracks[currentPageIndex][activeItemIndex+1]
+        } else if activeItemIndex < ayahRanges[currentRangeIndex].count - 1 {
+            /// more items ahead in the current range
+            /// keep playing
+            self.activeItemId = ayahRanges[currentRangeIndex][activeItemIndex+1]
             if isPlaying {
                 play(itemId:activeItemId)
             }
-        } else if isPlaying && isRepeatOn { // repeat the same page
-            self.activeItemId = tracks[currentPageIndex].first ?? ""
-        } else if currentPageIndex < tracks.count - 1 { // go to next page
-            self.currentPageIndex += 1
-            self.activeItemId = tracks[currentPageIndex].first ?? ""
+        } else if isPlaying && isRepeatOn {
+            /// repeat is on and we finished playing the range
+            /// play the same range from start
+            self.activeItemId = ayahRanges[currentRangeIndex].first ?? ""
+        } else if currentRangeIndex < ayahRanges.count - 1 {
+            /// range is done playing and repeat is off
+            /// go to next range
+            self.currentRangeIndex += 1
+            self.activeItemId = ayahRanges[currentRangeIndex].first ?? ""
             if isPlaying {
                 play(itemId:activeItemId)
             }
-        } else { // we reached the end, go to fatiha and stop playing
-            self.currentPageIndex = 0
+        } else {
+            /// we reached the end
+            /// stop playing
+            self.currentRangeIndex = 0
             self.activeItemId = ""
             stopPlayer()
             player = nil
@@ -460,13 +516,13 @@ public class MushafViewModel: NSObject, ObservableObject, AVAudioPlayerDelegate,
     private func goToPreviousItem() {
         
         if activeItemIndex <= 0 { // either first ayah on the page or no active ayah
-            currentPageIndex = currentPageIndex > 0 ? currentPageIndex - 1 : pages.count - 1 // go to previous page
-            activeItemId = tracks[currentPageIndex].last ?? ""
+            currentRangeIndex = currentRangeIndex > 0 ? currentRangeIndex - 1 : pages.count - 1 // go to previous page
+            activeItemId = ayahRanges[currentRangeIndex].last ?? ""
             if isPlaying {
                 play(itemId: activeItemId)
             }
         } else { // we reached the end, go to fatiha and stop playing
-            activeItemId = tracks[currentPageIndex][activeItemIndex-1]
+            activeItemId = ayahRanges[currentRangeIndex][activeItemIndex-1]
             if isPlaying {
                 play(itemId: activeItemId)
             }
@@ -491,14 +547,14 @@ public class MushafViewModel: NSObject, ObservableObject, AVAudioPlayerDelegate,
     func getPath(for source: AudioSource, trackId: String, fileExtension: String = "mp3") -> URL {
         return getDocumentsDirectory().appendingPathComponent("\(source)-\(trackId).\(fileExtension)")
     }
-
+    
     func downloadAudio(from remoteUrl: URL, to localStorageUrl: URL) async throws {
         let (data, _) = try await URLSession.shared.data(from: remoteUrl)
         try data.write(to: localStorageUrl)
         print("Audio data saved to: \(localStorageUrl.path)")
-
+        
     }
-
+    
     func fetchSurah(surahNumber: Int) async throws -> Surah {
         let url = URL(string: "https://api.alquran.cloud/v1/surah/\(surahNumber)")!
         
@@ -509,8 +565,8 @@ public class MushafViewModel: NSObject, ObservableObject, AVAudioPlayerDelegate,
             throw error
         }
     }
-
-
+    
+    
     
 }
 
@@ -545,7 +601,7 @@ extension MushafViewModel: AVAudioPlayerDelegate {
     }
     
     private func setupRemoteTransportControls() {
-
+        
         // Get the shared MPRemoteCommandCenter
         let commandCenter = MPRemoteCommandCenter.shared()
         
@@ -606,8 +662,8 @@ extension MushafViewModel: AVAudioPlayerDelegate {
         // Set the metadata
         MPNowPlayingInfoCenter.default().nowPlayingInfo = nowPlayingInfo
         
-//        print("Now playing local: \(nowPlayingInfo)")
-//        print("Now playing lock screen: \(MPNowPlayingInfoCenter.default().nowPlayingInfo)")
+        //        print("Now playing local: \(nowPlayingInfo)")
+        //        print("Now playing lock screen: \(MPNowPlayingInfoCenter.default().nowPlayingInfo)")
     }
     
     private func updateNowPlaying() {
@@ -662,7 +718,7 @@ extension MushafViewModel: AVAudioPlayerDelegate {
 //@Published var isRecording: Bool = false
 //
 //var isWaitingForUpload: Bool {
-//    for track in tracks.flatMap({$0}) {
+//    for track in ayahRanges.flatMap({$0}) {
 //        if recordingExists(track) && !recordingUploaded(track) {
 //            return true
 //        }
@@ -709,10 +765,10 @@ extension MushafViewModel: AVAudioPlayerDelegate {
 //        recordNextItem()
 //    } else if isPlaying {
 //        playNextItem()
-//    } else if currentlyActiveIndex < tracks.flatMap({$0}).count - 1 { /// moreItemsAhead
-//        self.activeItemId = tracks.flatMap({$0})[currentlyActiveIndex+1]
+//    } else if currentlyActiveIndex < ayahRanges.flatMap({$0}).count - 1 { /// moreItemsAhead
+//        self.activeItemId = ayahRanges.flatMap({$0})[currentlyActiveIndex+1]
 //    } else {
-//        self.activeItemId = tracks.flatMap({$0}).first ?? ""
+//        self.activeItemId = ayahRanges.flatMap({$0}).first ?? ""
 //    }
 //}
 //
@@ -723,7 +779,7 @@ extension MushafViewModel: AVAudioPlayerDelegate {
 //    } else if isPlaying {
 //        playPreviousItem()
 //    } else if currentlyActiveIndex > 0 {
-//        self.activeItemId = tracks.flatMap({$0})[currentlyActiveIndex-1]
+//        self.activeItemId = ayahRanges.flatMap({$0})[currentlyActiveIndex-1]
 //    }
 //
 //}
@@ -747,8 +803,8 @@ extension MushafViewModel: AVAudioPlayerDelegate {
 //        pausePlayer()
 //    }
 //
-//    uploader.uploadNewlyRecordedAudios(tracks.flatMap({$0}))
-//    var count = tracks.count + 3
+//    uploader.uploadNewlyRecordedAudios(ayahRanges.flatMap({$0}))
+//    var count = ayahRanges.count + 3
 //    Timer.scheduledTimer(withTimeInterval: 2.0, repeats: true) { timer in
 //        count -= 1
 //        self.activeItemId = self.activeItemId
@@ -776,7 +832,7 @@ extension MushafViewModel: AVAudioPlayerDelegate {
 //
 //private func startRecording() {
 //
-//    if activeItemId.isEmpty, let first = tracks.flatMap({$0}).first  {
+//    if activeItemId.isEmpty, let first = ayahRanges.flatMap({$0}).first  {
 //        activeItemId = first
 //    }
 //
@@ -811,23 +867,23 @@ extension MushafViewModel: AVAudioPlayerDelegate {
 //
 //private func saveRecordingProgress() {
 //    var recorded = 0
-//    for track in tracks.flatMap({$0}) {
+//    for track in ayahRanges.flatMap({$0}) {
 //        if recordingStorage.doesRecordingExist(track) {
 //            recorded += 1
 //        }
 //    }
-//    clientStorage.saveRecordProgress(audioId, progress: Double(recorded)/Double(tracks.count))
+//    clientStorage.saveRecordProgress(audioId, progress: Double(recorded)/Double(ayahRanges.count))
 //}
 //
 //private func recordNextItem(){
 //    finishRecording()
 //
-//    if currentlyActiveIndex < tracks.count - 1 {
+//    if currentlyActiveIndex < ayahRanges.count - 1 {
 //        /// moreItemsAhead
-//        self.activeItemId = tracks.flatMap({$0})[currentlyActiveIndex+1]
+//        self.activeItemId = ayahRanges.flatMap({$0})[currentlyActiveIndex+1]
 //        startRecording()
 //    } else {
-//        activeItemId = tracks.flatMap({$0}).first ?? ""
+//        activeItemId = ayahRanges.flatMap({$0}).first ?? ""
 //    }
 //}
 //
@@ -837,7 +893,7 @@ extension MushafViewModel: AVAudioPlayerDelegate {
 //    finishRecording()
 //
 //    if currentlyActiveIndex > 0 {
-//        activeItemId = tracks.flatMap({$0})[currentlyActiveIndex-1]
+//        activeItemId = ayahRanges.flatMap({$0})[currentlyActiveIndex-1]
 //        startRecording()
 //    }
 //}

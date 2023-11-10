@@ -14,3 +14,36 @@ public protocol RecorderItem {
     var commentary: String {get}
     var image: String {get}
 }
+
+// MARK: - PageElement
+public struct Page: Codable {
+    let pageNumber: Int
+    let ayahs: [AyahCoordinate]
+
+    enum CodingKeys: String, CodingKey {
+        case pageNumber = "page_number"
+        case ayahs
+    }
+}
+
+// MARK: - Ayah
+public struct AyahCoordinate: Codable {
+    let surahNumber, ayahNumber: Int
+    let lines: [[WordCoordinate]]
+
+    enum CodingKeys: String, CodingKey {
+        case surahNumber = "surah_number"
+        case ayahNumber = "ayah_number"
+        case lines = "lines"
+    }
+}
+
+// MARK: - WordCoordinate
+public struct WordCoordinate: Codable {
+    let x, y1, y2: CGFloat
+}
+
+struct RectangleData: Identifiable {
+    var id: UUID = UUID()
+    var rect: CGRect
+}
