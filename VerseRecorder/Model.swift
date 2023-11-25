@@ -36,6 +36,12 @@ public struct AyahCoordinate: Codable {
         case ayahNumber = "ayah_number"
         case lines = "lines"
     }
+    
+    var id: String {
+        let formattedSurahNumber = String(format: "%03d", surahNumber)
+        let formattedAyahNumber = String(format: "%03d", ayahNumber)
+        return "\(formattedSurahNumber)\(formattedAyahNumber)"
+    }
 }
 
 // MARK: - WordCoordinate

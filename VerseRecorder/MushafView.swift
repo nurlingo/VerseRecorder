@@ -78,7 +78,7 @@ public struct MushafView: View {
         HStack(alignment: .bottom) {
             Text(SurahNames.juzAmma[Int(mushafVM.activeItemId.dropLast(3)) ?? 1]?.1 ?? "")
             Spacer()
-            Text(String(mushafVM.pages[mushafVM.currentRangeIndex]))
+            Text(String(mushafVM.pages[mushafVM.currentRangeIndex].pageNumber))
             Spacer()
             Text(SurahNames.juzAmma[Int(mushafVM.activeItemId.dropLast(3)) ?? 1]?.0 ?? "")
         }
@@ -87,12 +87,12 @@ public struct MushafView: View {
         TabView(selection: $mushafVM.currentRangeIndex) {
             ForEach(0..<mushafVM.pages.count, id: \.self) { index in
                 GeometryReader { geometry in
-                    Image(String(mushafVM.pages[index])) // Replace with the name of your image asset
+                    Image(String(mushafVM.pages[index].pageNumber)) // Replace with the name of your image asset
                         .resizable()
                         .aspectRatio(contentMode: .fit)
                         .onAppear {
                             imageSize = CGSize(width: geometry.size.width, height: geometry.size.height)
-                            print("Image size: \(imageSize)")
+//                            print("Image size: \(imageSize)")
                         }
                         .overlay(
                             ForEach(mushafVM.ayahRectangles) { rectangle in
@@ -223,9 +223,7 @@ public enum AudioSource: String {
 public class MushafViewModel: NSObject, ObservableObject, AVAudioPlayerDelegate, AVAudioRecorderDelegate {
     
     public var mushafPublication: MushafPublication = .qaloonMadinan
-    public var pages: [Int]
-    public var ayahRanges: [[String]]
-    public var pageCoordinates: [Page]
+    public var pages: [Page]
     private var audioSource: AudioSource = .alafasyHafs
     
     private let speedDict: [Float:Float] = [
@@ -242,14 +240,14 @@ public class MushafViewModel: NSObject, ObservableObject, AVAudioPlayerDelegate,
     
     @Published var currentRangeIndex = UserDefaults.standard.integer(forKey: "currentPageIndex") {
         didSet {
-            print(currentRangeIndex)
+//            print(currentRangeIndex)
             UserDefaults.standard.set(speed, forKey: "currentPageIndex")
             UserDefaults.standard.synchronize()
             
             if player?.isPlaying ?? false {
                 pausePlayer()
             }
-            activeItemId = ayahRanges[currentRangeIndex].first ?? ""
+            activeItemId = pages[currentRangeIndex].ayahs.first?.id ?? ""
         }
     }
     @Published var activeItemId: String = UserDefaults.standard.string(forKey: "activeItemId") ?? "001000" {
@@ -280,7 +278,7 @@ public class MushafViewModel: NSObject, ObservableObject, AVAudioPlayerDelegate,
     @Published var isShowingText = false
         
     public var activeItemIndex: Int {
-        if let index = ayahRanges[currentRangeIndex].firstIndex(of: activeItemId) {
+        if let index = pages[currentRangeIndex].ayahs.firstIndex(where: {$0.id == activeItemId}) {
             return index
         } else {
             return -1
@@ -342,10 +340,8 @@ public class MushafViewModel: NSObject, ObservableObject, AVAudioPlayerDelegate,
     }
     
     
-    public init(pages: [Int], ayahRanges: [[String]], pageCoordinates: [Page]) {
+    public init(pages: [Page]) {
         self.pages = pages
-        self.ayahRanges = ayahRanges
-        self.pageCoordinates = pageCoordinates
         super.init()
         setupPlayer()
         setupRemoteTransportControls()
@@ -361,8 +357,9 @@ public class MushafViewModel: NSObject, ObservableObject, AVAudioPlayerDelegate,
     
     private func play(from source: AudioSource = .husaryHafs, itemId: String) {
         
-        if itemId.isEmpty, let first = ayahRanges[currentRangeIndex].first  {
-            activeItemId = first
+        if itemId.isEmpty,
+            let firstAyahId = pages[currentRangeIndex].ayahs.first?.id  {
+            activeItemId = firstAyahId
         } else {
             activeItemId = itemId
         }
@@ -382,11 +379,10 @@ public class MushafViewModel: NSObject, ObservableObject, AVAudioPlayerDelegate,
         } else {
             itemToPlay = activeItemId
             
-            
-            if let pageCoordinates = pageCoordinates.first(where: {$0.pageNumber == pages[currentRangeIndex]}),
+            if pages.count > currentRangeIndex,
                let surahNumber = Int(itemToPlay.prefix(3)),
                let ayahNumber = Int(itemToPlay.suffix(3)),
-               let ayahCoordinates = pageCoordinates.ayahs.first(where: {$0.surahNumber == surahNumber && $0.ayahNumber == ayahNumber})  {
+               let ayahCoordinates = pages[currentRangeIndex].ayahs.first(where: {$0.surahNumber == surahNumber && $0.ayahNumber == ayahNumber})  {
                 
                 
                 ayahRectangles = []
@@ -481,24 +477,24 @@ public class MushafViewModel: NSObject, ObservableObject, AVAudioPlayerDelegate,
         if activeItemIndex < 0 {
             /// player is inactive
             /// start from the first ayah in the current range
-            activeItemId = ayahRanges[currentRangeIndex].first ?? ""
+            activeItemId = pages[currentRangeIndex].ayahs.first?.id ?? ""
             play(itemId: activeItemId)
-        } else if activeItemIndex < ayahRanges[currentRangeIndex].count - 1 {
+        } else if activeItemIndex < pages[currentRangeIndex].ayahs.count - 1 {
             /// more items ahead in the current range
             /// keep playing
-            self.activeItemId = ayahRanges[currentRangeIndex][activeItemIndex+1]
+            self.activeItemId = pages[currentRangeIndex].ayahs[activeItemIndex+1].id
             if isPlaying {
                 play(itemId:activeItemId)
             }
         } else if isPlaying && isRepeatOn {
             /// repeat is on and we finished playing the range
             /// play the same range from start
-            self.activeItemId = ayahRanges[currentRangeIndex].first ?? ""
-        } else if currentRangeIndex < ayahRanges.count - 1 {
+            self.activeItemId = pages[currentRangeIndex].ayahs.first?.id ?? ""
+        } else if currentRangeIndex < pages.count - 1 {
             /// range is done playing and repeat is off
             /// go to next range
             self.currentRangeIndex += 1
-            self.activeItemId = ayahRanges[currentRangeIndex].first ?? ""
+            self.activeItemId = pages[currentRangeIndex].ayahs.first?.id ?? ""
             if isPlaying {
                 play(itemId:activeItemId)
             }
@@ -517,12 +513,12 @@ public class MushafViewModel: NSObject, ObservableObject, AVAudioPlayerDelegate,
         
         if activeItemIndex <= 0 { // either first ayah on the page or no active ayah
             currentRangeIndex = currentRangeIndex > 0 ? currentRangeIndex - 1 : pages.count - 1 // go to previous page
-            activeItemId = ayahRanges[currentRangeIndex].last ?? ""
+            activeItemId = pages[currentRangeIndex].ayahs.last?.id ?? ""
             if isPlaying {
                 play(itemId: activeItemId)
             }
         } else { // we reached the end, go to fatiha and stop playing
-            activeItemId = ayahRanges[currentRangeIndex][activeItemIndex-1]
+            activeItemId = pages[currentRangeIndex].ayahs[activeItemIndex-1].id
             if isPlaying {
                 play(itemId: activeItemId)
             }
