@@ -20,16 +20,34 @@ public struct Credentials {
     }
 }
 
+
+public protocol ClientStorage {
+    
+    func saveRecordProgress(_ recordingId: String, progress: Double)
+    func getRecordProgress(_ recordingId: String) -> Double
+    
+    func saveUploadProgress(_ recordingId: String, progress: Double)
+    func getUploadProgress(_ recordingId: String) -> Double
+    
+    func getReciterId() -> String
+    func saveReciterId(_ reciterId: String)
+    func getGender() -> String
+    func getCountryCode() -> String
+    func getAge() -> String
+    func getPlatform() -> String
+    func getQiraaah() -> String
+    
+}
+
+
 @available(iOS 15.0.0, *)
 class UploaderService {
     
     let creds: Credentials
-    let clientStorage: ClientStorage
     let recordingStorage = RecordingStorage.shared
     
-    init(credentials: Credentials, clientStorage: ClientStorage) {
+    init(credentials: Credentials) {
         self.creds = credentials
-        self.clientStorage = clientStorage
     }
     
     private func getToken() async {
@@ -101,66 +119,50 @@ class UploaderService {
         
         print("updating reciters info")
         
-        let url: URL
+        let storedReciterId = "nurios"
+
         
-        let storedReciterId = clientStorage.getReciterId()
-        
-        if storedReciterId.isEmpty {
-            url = URL(string: "\(creds.remoteAPI)reciters")!
-        } else {
-            url = URL(string: "\(creds.remoteAPI)reciters/\(storedReciterId)")!
-        }
-        
+        let url = URL(string:
+                        storedReciterId.isEmpty
+                      ? "\(creds.remoteAPI)reciters"
+                      : "\(creds.remoteAPI)reciters/\(storedReciterId)")!
         
         var request = URLRequest(url: url)
-        
-        if clientStorage.getReciterId().isEmpty {
-            request.httpMethod = "POST"
-        } else {
-            request.httpMethod = "PUT"
-        }
-        
+        request.httpMethod = storedReciterId.isEmpty ?  "POST" : "PUT"
         request.addValue("application/json", forHTTPHeaderField: "Content-Type")
         request.addValue("application/json", forHTTPHeaderField: "Accept")
         request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
         
         var json: [String: Any] = [
-            "gender": clientStorage.getGender(),
-            "qiraah": clientStorage.getQiraaah(),
-            "platform": clientStorage.getPlatform()
+            "gender": "unknown",
+            "qiraah": RecordingStorage.shared.getQiraaah(),
+            "platform": RecordingStorage.shared.getPlatform(),
+            "country": RecordingStorage.shared.getCountryCode(),
+            "age": "27-35"
         ]
-        
-        if !clientStorage.getCountryCode().isEmpty {
-            json["country"] = clientStorage.getCountryCode()
-        }
-        
-        if !clientStorage.getAge().isEmpty {
-            json["age"] = clientStorage.getAge()
-        }
         
         do {
             
             let jsonData = try JSONSerialization.data(withJSONObject: json, options: .prettyPrinted)
             let jsonString = String(data: jsonData, encoding: String.Encoding.ascii)!
-//            print (jsonString)
-
+            print (jsonString)
             
             request.httpBody = jsonData
             
             let (data, response) = try await URLSession.shared.data(for: request)
             
             if let string = String(data: data, encoding: .utf8) {
-//                print(string)
+                print(string)
             }
             
             let dataDict = try JSONDecoder().decode([String:String?].self, from: data)
             
             if let fetchedReciterId = dataDict["client_id"] as? String {
-                self.clientStorage.saveReciterId(fetchedReciterId)
-//                print(fetchedReciterId)
+//                self.clientStorage.saveReciterId(fetchedReciterId)
+                print(fetchedReciterId)
             }
             
-//            print(response)
+            print(response)
             
             // handle the result
         } catch {
@@ -168,55 +170,18 @@ class UploaderService {
         }
     }
     
-    
-    internal func uploadNewlyRecordedAudios(_ tracks: [String], for audioId: String? = nil) {
-        
-        Task {
-            do {
-                await self.getToken()
-                await self.getUserID()
-                await self.updateReciterInfo()
-                
-                var uploaded = 0
-                
-                for track in tracks {
-                    
-                    guard recordingStorage.doesRecordingExist(track) else {continue}
-                    
-                    uploaded += 1
-
-                    if !recordingStorage.didUploadRecording(track) {
-                        await self.upload(track)
-                    }
-                }
-                
-                print("upload complete")
-                
-                if let audioId = audioId {
-                    clientStorage.saveUploadProgress(audioId, progress: Double(uploaded)/Double(tracks.count))
-                }
-                
-                
-            } catch {
-                //FIXME: add catch exceptions
-                print(#file, #function, #line, #column, error.localizedDescription)
-            }
-        }
-        
-    }
-    
-    private func upload(_ trackId: String) async {
+    func upload(_ recording: Recording) async {
         
         // FIXME: this is not reusable actually.
         
-        print("uploading \(trackId)")
+        print("uploading \(recording.uid.uuidString)")
         
-        let surahNumber = trackId.prefix(trackId.count-3)
-        let ayahNumber = trackId.suffix(3)
+        let surahNumber = recording.first.prefix(recording.first.count-3)
+        let ayahNumber = recording.first.suffix(3)
         print(surahNumber)
         print(ayahNumber)
         
-        let url = URL(string: "\(creds.remoteAPI)audios?client_id=\(clientStorage.getReciterId())&surra_number=\(surahNumber)&aya_number=\(ayahNumber)")!
+        let url = URL(string: "\(creds.remoteAPI)audios?client_id=nurios&surra_number=\(surahNumber)&aya_number=\(ayahNumber)")!
         var request = URLRequest(url: url)
         request.httpMethod = "POST"
         request.addValue("application/json", forHTTPHeaderField: "Accept")
@@ -227,14 +192,14 @@ class UploaderService {
         request.setValue("multipart/form-data; boundary=\(boundary)", forHTTPHeaderField: "Content-Type")
         
         do {
-            let path = recordingStorage.getPath(for: trackId)
+            let path = recordingStorage.getPath(for: recording.uid.uuidString)
             let audioData = try Data(contentsOf: path)
             
             var data = Data()
             
             // Add the image data to the raw http request data
             data.append("\r\n--\(boundary)\r\n".data(using: .utf8)!)
-            data.append("Content-Disposition: form-data; name=\"audio_file\"; filename=\"recording-\(trackId).m4a\"\r\n".data(using: .utf8)!)
+            data.append("Content-Disposition: form-data; name=\"audio_file\"; filename=\"\(recording.uid.uuidString).m4a\"\r\n".data(using: .utf8)!)
             data.append("Content-Type: audio/m4a\r\n\r\n".data(using: .utf8)!)
             data.append(audioData)
             data.append("\r\n--\(boundary)--\r\n".data(using: .utf8)!)
@@ -242,11 +207,10 @@ class UploaderService {
             let (responseData, response) = try await URLSession.shared.upload(for: request, from: data)
             
             if let string = String(data: responseData, encoding: .utf8) {
-//                print(string)
+                print(string)
             }
         
-//            print(response)
-            recordingStorage.registerUploadingDate(trackId)
+            print(response)
             
         } catch {
             print(#file, #function, #line, #column, error.localizedDescription)

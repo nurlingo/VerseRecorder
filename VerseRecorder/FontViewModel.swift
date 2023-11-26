@@ -8,6 +8,26 @@
 import Foundation
 
 @available(iOS 13.0, *)
+extension Font {
+    /// get "Open Sans" font or fallbacks to the system font in case the custom font was not registered
+    /// - Parameter size: size of font
+    /// - Returns: "Open Sans" font (or sytem font as fallback)
+    static func uthmanicHafsScript(size: CGFloat) -> Font {
+        guard UIFont.familyNames.contains("KFGQPC Uthmanic Script HAFS") else {
+            return Font.system(size: size)
+        }
+        return .custom("KFGQPCUthmanicScriptHAFS", size: size)
+    }
+    
+    static func uthmanicTahaScript(size: CGFloat) -> Font {
+        guard UIFont.familyNames.contains("KFGQPC Uthman Taha Naskh") else {
+            return Font.system(size: size)
+        }
+        return .custom("KFGQPCUthmanTahaNaskh", size: size)
+    }
+}
+
+@available(iOS 13.0, *)
 public class FontViewModel: NSObject, ObservableObject {
     
     @Published var fontSize: Float = 30.0 {

@@ -180,9 +180,6 @@ public class ContentStorage: NSObject {
         let url = URL(string: "https://cdn.islamic.network/quran/audio/\(bitRate)/\(editing)/\(ayahNumber).mp3")!
         
         do {
-            
-            
-            
             // Download the remote URL to a file
             let (data, response) = try await URLSession.shared.data(from: url)
             

@@ -53,3 +53,17 @@ struct RectangleData: Identifiable {
     var id: UUID = UUID()
     var rect: CGRect
 }
+
+struct Recording: Codable {
+    let date: Date
+    let first: String
+    let last: String
+    let uid: UUID
+    
+    init(first: String, last: String) {
+        self.date = Date()
+        self.first = first
+        self.last = last
+        self.uid = UUID()
+    }
+}
