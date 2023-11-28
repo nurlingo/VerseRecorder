@@ -77,18 +77,7 @@ public struct MushafView: View {
             Spacer()
             Text(String(mushafVM.pages[mushafVM.currentRangeIndex].pageNumber))
             Spacer()
-            Button {
-                mushafVM.mode = mushafVM.mode == .player ? .recorder : .player
-                print("mode tapped:", mushafVM.mode)
-            } label: {
-                Image(systemName: mushafVM.mode == .player ? "mic.square" : "play.square")
-                    .resizable()
-                    .scaledToFit()
-                    .font(.system(size: 16, weight: .light))
-                    .frame(width: 25, height: 25)
-            }
-            .buttonStyle(PlainButtonStyle())
-            .disabled(mushafVM.isPlaying || mushafVM.isRecording)
+            Text(SurahNames.juzAmma[Int(mushafVM.activeItemId.dropLast(3)) ?? 1]?.0 ?? "")
         }
         .padding(.horizontal, 16)
         
@@ -208,7 +197,20 @@ struct PlayerPanel: View {
                     .buttonStyle(PlainButtonStyle())
                     
                     
-                    
+                    Button {
+                        mushafVM.mode = .recorder
+                        print("mode tapped:", mushafVM.mode)
+                    } label: {
+                        Image(systemName: "mic.square")
+                            .resizable()
+                            .scaledToFit()
+                            .font(.system(size: 16, weight: .light))
+                            .frame(width: 30, height: 30)
+                    }
+                    .buttonStyle(PlainButtonStyle())
+                    .disabled(mushafVM.isPlaying)
+                    .padding(.leading, 8)
+
                 }
             }
             
@@ -222,7 +224,7 @@ struct PlayerPanel: View {
                     .scaledToFit()
                     .foregroundColor(Color(uiColor: .systemBlue))
                     .font(.system(size: 20, weight: .ultraLight))
-                    .frame(width: 70, height: 70)
+                    .frame(width: 60, height: 60)
             }
             .buttonStyle(PlainButtonStyle())
             
@@ -284,6 +286,20 @@ struct RecorderPanel: View {
                     }
                     .buttonStyle(PlainButtonStyle())
                     
+                    Button {
+                        mushafVM.mode = .player
+                        print("mode tapped:", mushafVM.mode)
+                    } label: {
+                        Image(systemName: "play.square")
+                            .resizable()
+                            .scaledToFit()
+                            .font(.system(size: 16, weight: .light))
+                            .frame(width: 30, height: 30)
+                    }
+                    .buttonStyle(PlainButtonStyle())
+                    .disabled(mushafVM.isRecording)
+                    .padding(.leading, 8)
+                    
                 }
             }
             
@@ -312,7 +328,7 @@ struct RecorderPanel: View {
                     .scaledToFit()
                     .foregroundColor(Color(uiColor: .systemGreen))
                     .font(.system(size: 20, weight: .ultraLight))
-                    .frame(width: 70, height: 70)
+                    .frame(width: 60, height: 60)
             }
             .buttonStyle(PlainButtonStyle())
             

@@ -5,7 +5,7 @@
 //  Created by Nursultan Askarbekuly on 26.11.2022.
 //
 
-import Foundation
+import SwiftUI
 
 @available(iOS 13.0, *)
 extension Font {
