@@ -110,21 +110,12 @@ public struct MushafView: View {
         .tabViewStyle(.page(indexDisplayMode: .automatic))
         .scaleEffect(x: -1, y: 1)
         
-        if mushafVM.mode == .player {
-            PlayerPanel(mushafVM: mushafVM)
-                .frame(height: 50)
-                .onDisappear {
-                    mushafVM.resetPlayer()
-                    mushafVM.resetRecorder()
-                }
-        } else {
-            RecorderPanel(mushafVM: mushafVM)
-                .frame(height: 50)
-                .onDisappear {
-                    mushafVM.resetPlayer()
-                    mushafVM.resetRecorder()
-                }
-        }
+        PlayerPanel(mushafVM: mushafVM)
+            .frame(height: 50)
+            .onDisappear {
+                mushafVM.resetPlayer()
+                mushafVM.resetRecorder()
+            }
         
     }
     
@@ -138,78 +129,137 @@ struct PlayerPanel: View {
     
     var body: some View {
         HStack(alignment: .bottom) {
+            Button {
+                mushafVM.handleRecordButton()
+            } label: {
+                Image(systemName: mushafVM.isRecording ? "stop.circle.fill" : "mic.circle.fill")
+                    .resizable()
+                    .scaledToFit()
+                    .foregroundColor(Color(uiColor: .systemGreen))
+                    .font(.system(size: 20, weight: .ultraLight))
+                    .frame(width: 60, height: 60)
+            }
+            .buttonStyle(PlainButtonStyle())
             VStack(alignment: .leading) {
                 
                 Text(mushafVM.infoMessage)
                 
                 HStack{
                     
-                    Button {
-                        mushafVM.handleRepeatButton()
-                        print("repeat tapped")
-                    } label: {
-                        Image(systemName: mushafVM.isRepeatOn ? "repeat.circle.fill" : "repeat.circle")
-                            .resizable()
-                            .scaledToFit()
-                            .font(.system(size: 16, weight: .light))
-                            .frame(width: 30, height: 30)
+                    if !mushafVM.isRecording,
+                       let activeRecording = mushafVM.activeRecording,
+                       mushafVM.recordingExists(activeRecording.uid.uuidString) {
+                        Button {
+                            mushafVM.handlePlayRecordingButton()
+                        } label: {
+                            Image(systemName: mushafVM.isPlaying ? "stop.circle" : "play.circle")
+                                .resizable()
+                                .scaledToFit()
+                                .font(.system(size: 16, weight: .light))
+                                .frame(width: 45, height: 45)
+                        }
+                        .buttonStyle(PlainButtonStyle())
                     }
-                    .buttonStyle(PlainButtonStyle())
                     
-                    Button {
-                        mushafVM.handlePreviousButton()
-                        print("backward tapped!")
-                    } label: {
-                        Image(systemName: "backward.circle")
-                            .resizable()
-                            .scaledToFit()
-                            .font(.system(size: 16, weight: .light))
-                            .frame(width: 30, height: 30)
+                    if mushafVM.isPlaying {
+                        Button {
+                            mushafVM.handleRepeatButton()
+                            print("repeat tapped")
+                        } label: {
+                            Image(systemName: mushafVM.isRepeatOn ? "repeat.circle.fill" : "repeat.circle")
+                                .resizable()
+                                .scaledToFit()
+                                .font(.system(size: 16, weight: .light))
+                                .frame(width: 30, height: 30)
+                        }
+                        .buttonStyle(PlainButtonStyle())
+                        
+                        Button {
+                            mushafVM.handlePreviousButton()
+                            print("backward tapped!")
+                        } label: {
+                            Image(systemName: "backward.circle")
+                                .resizable()
+                                .scaledToFit()
+                                .font(.system(size: 16, weight: .light))
+                                .frame(width: 30, height: 30)
+                        }
+                        .buttonStyle(PlainButtonStyle())
+                        .disabled(!mushafVM.isRecording)
+                        
+                        
+                        
+                        Button {
+                            mushafVM.handleNextButton()
+                            print("forward tapped!")
+                        } label: {
+                            Image(systemName: "forward.circle")
+                                .resizable()
+                                .scaledToFit()
+                                .font(.system(size: 16, weight: .light))
+                                .frame(width: 30, height: 30)
+                        }
+                        .buttonStyle(PlainButtonStyle())
+                        .disabled(!mushafVM.isRecording)
+                        
+                        Button {
+                            mushafVM.handleSpeedButton()
+                            print("speed tapped:", mushafVM.speed)
+                        } label: {
+                            Image(systemName: "speedometer")
+                                .resizable()
+                                .scaledToFit()
+                                .font(.system(size: 16, weight: .light))
+                                .frame(width: 30, height: 30)
+                        }
+                        .buttonStyle(PlainButtonStyle())
+                    } else {
+                        Button {
+                            print("Previous range")
+                        } label: {
+                            Image(systemName: "chevron.left.circle")
+                                .resizable()
+                                .scaledToFit()
+                                .font(.system(size: 16, weight: .light))
+                                .frame(width: 30, height: 30)
+                        }
+                        .buttonStyle(PlainButtonStyle())
+                        .disabled(!mushafVM.isRecording)
+                        
+                        
+                        
+                        Button {
+                            print("Next range")
+                        } label: {
+                            Image(systemName: "chevron.right.circle")
+                                .resizable()
+                                .scaledToFit()
+                                .font(.system(size: 16, weight: .light))
+                                .frame(width: 30, height: 30)
+                        }
+                        .buttonStyle(PlainButtonStyle())
+                        .disabled(!mushafVM.isRecording)
+                        
+                        if mushafVM.isRecording {
+                            Button {
+                                mushafVM.isHidden.toggle()
+                                print("hide tapped:", mushafVM.isHidden)
+                            } label: {
+                                Image(systemName: mushafVM.isHidden ? "eye.circle" : "eye.slash.circle")
+                                    .resizable()
+                                    .scaledToFit()
+                                    .font(.system(size: 16, weight: .light))
+                                    .frame(width: 30, height: 30)
+                            }
+                            .buttonStyle(PlainButtonStyle())
+                        }
                     }
-                    .buttonStyle(PlainButtonStyle())
-                    .disabled(!mushafVM.isRecording)
                     
                     
                     
-                    Button {
-                        mushafVM.handleNextButton()
-                        print("forward tapped!")
-                    } label: {
-                        Image(systemName: "forward.circle")
-                            .resizable()
-                            .scaledToFit()
-                            .font(.system(size: 16, weight: .light))
-                            .frame(width: 30, height: 30)
-                    }
-                    .buttonStyle(PlainButtonStyle())
-                    .disabled(!mushafVM.isRecording)
-                    
-                    Button {
-                        mushafVM.handleSpeedButton()
-                        print("speed tapped:", mushafVM.speed)
-                    } label: {
-                        Image(systemName: "speedometer")
-                            .resizable()
-                            .scaledToFit()
-                            .font(.system(size: 16, weight: .light))
-                            .frame(width: 30, height: 30)
-                    }
-                    .buttonStyle(PlainButtonStyle())
                     
                     
-                    Button {
-                        mushafVM.mode = .recorder
-                        print("mode tapped:", mushafVM.mode)
-                    } label: {
-                        Image(systemName: "mic.square")
-                            .resizable()
-                            .scaledToFit()
-                            .font(.system(size: 16, weight: .light))
-                            .frame(width: 30, height: 30)
-                    }
-                    .buttonStyle(PlainButtonStyle())
-                    .disabled(mushafVM.isPlaying)
-                    .padding(.leading, 8)
+                   
 
                 }
             }
@@ -233,108 +283,3 @@ struct PlayerPanel: View {
         .padding(.bottom, 24)
     }
 }
-
-@available(iOS 15.0, *)
-struct RecorderPanel: View {
-    
-    @StateObject var mushafVM: MushafViewModel
-    
-    var body: some View {
-        HStack(alignment: .bottom) {
-            VStack(alignment: .leading) {
-                
-                Text(mushafVM.infoMessage)
-                
-                HStack{
-                    Spacer().frame(width:38)
-                    
-                    Button {
-                        print("Previous range")
-                    } label: {
-                        Image(systemName: "chevron.left.circle")
-                            .resizable()
-                            .scaledToFit()
-                            .font(.system(size: 16, weight: .light))
-                            .frame(width: 30, height: 30)
-                    }
-                    .buttonStyle(PlainButtonStyle())
-                    .disabled(!mushafVM.isRecording)
-                    
-                    
-                    
-                    Button {
-                        print("Next range")
-                    } label: {
-                        Image(systemName: "chevron.right.circle")
-                            .resizable()
-                            .scaledToFit()
-                            .font(.system(size: 16, weight: .light))
-                            .frame(width: 30, height: 30)
-                    }
-                    .buttonStyle(PlainButtonStyle())
-                    .disabled(!mushafVM.isRecording)
-                    
-                    Button {
-                        mushafVM.isHidden.toggle()
-                        print("hide tapped:", mushafVM.isHidden)
-                    } label: {
-                        Image(systemName: mushafVM.isHidden ? "eye.circle" : "eye.slash.circle")
-                            .resizable()
-                            .scaledToFit()
-                            .font(.system(size: 16, weight: .light))
-                            .frame(width: 30, height: 30)
-                    }
-                    .buttonStyle(PlainButtonStyle())
-                    
-                    Button {
-                        mushafVM.mode = .player
-                        print("mode tapped:", mushafVM.mode)
-                    } label: {
-                        Image(systemName: "play.square")
-                            .resizable()
-                            .scaledToFit()
-                            .font(.system(size: 16, weight: .light))
-                            .frame(width: 30, height: 30)
-                    }
-                    .buttonStyle(PlainButtonStyle())
-                    .disabled(mushafVM.isRecording)
-                    .padding(.leading, 8)
-                    
-                }
-            }
-            
-            Spacer()
-            
-            if !mushafVM.isRecording,
-               let activeRecording = mushafVM.activeRecording,
-               mushafVM.recordingExists(activeRecording.uid.uuidString) {
-                Button {
-                    mushafVM.handlePlayRecordingButton()
-                } label: {
-                    Image(systemName: mushafVM.isPlaying ? "stop.circle" : "play.circle")
-                        .resizable()
-                        .scaledToFit()
-                        .font(.system(size: 16, weight: .light))
-                        .frame(width: 45, height: 45)
-                }
-                .buttonStyle(PlainButtonStyle())
-            }
-            
-            Button {
-                mushafVM.handleRecordButton()
-            } label: {
-                Image(systemName: mushafVM.isRecording ? "stop.circle.fill" : "mic.circle.fill")
-                    .resizable()
-                    .scaledToFit()
-                    .foregroundColor(Color(uiColor: .systemGreen))
-                    .font(.system(size: 20, weight: .ultraLight))
-                    .frame(width: 60, height: 60)
-            }
-            .buttonStyle(PlainButtonStyle())
-            
-        }
-        .padding(.horizontal, 32)
-        .padding(.bottom, 24)
-    }
-}
-
