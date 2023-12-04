@@ -37,7 +37,7 @@ struct SurahNames {
         95: ("التين", "At-Tin"),
         96: ("العلق", "Al-Alaq"),
         97: ("القدر", "Al-Qadr"),
-        98: ("البينة", "Al-Bayyina"),
+        98: ("البينة", "Al-Bayyinah"),
         99: ("الزلزلة", "Az-Zalzalah"),
         100: ("العاديات", "Al-Adiyat"),
         101: ("القارعة", "Al-Qari'a"),
@@ -72,19 +72,12 @@ public struct MushafView: View {
     @State private var imageSize: CGSize = .zero
     
     public var body: some View {
-        HStack(alignment: .bottom) {
-            Text(SurahNames.juzAmma[Int(mushafVM.activeItemId.dropLast(3)) ?? 1]?.1 ?? "")
-            Spacer()
-            Text(String(mushafVM.pages[mushafVM.currentRangeIndex].pageNumber))
-            Spacer()
-            Text(SurahNames.juzAmma[Int(mushafVM.activeItemId.dropLast(3)) ?? 1]?.0 ?? "")
-        }
-        .padding(.horizontal, 16)
+        Text(String(mushafVM.pages[mushafVM.currentPage]))
         
-        TabView(selection: $mushafVM.currentRangeIndex) {
+        TabView(selection: $mushafVM.currentPage) {
             ForEach(0..<mushafVM.pages.count, id: \.self) { index in
                 GeometryReader { geometry in
-                    Image(String(mushafVM.pages[index].pageNumber)) // Replace with the name of your image asset
+                    Image(String(mushafVM.pages[index])) // Replace with the name of your image asset
                         .resizable()
                         .aspectRatio(contentMode: .fit)
                         .onAppear {
@@ -94,8 +87,8 @@ public struct MushafView: View {
                         .overlay(
                             ForEach(mushafVM.ayahRectangles) { rectangle in
                                 Rectangle()
-                                    .fill(Color.yellow) // Change color as needed
-                                    .opacity(0.2) // Change opacity as needed
+                                    .fill(!mushafVM.isPlaying && mushafVM.isHidden ? Color(uiColor: . systemBackground) : Color.yellow) // Change color as needed
+                                    .opacity(!mushafVM.isPlaying && mushafVM.isHidden ? 1 : 0.2) // Change opacity as needed
                                     .frame(width: rectangle.rect.width * min(imageSize.width/728, imageSize.height/1131), height: rectangle.rect.height * min(imageSize.width/728, imageSize.height/1131))
                                     .position(x: (rectangle.rect.origin.x + rectangle.rect.size.width / 2) * min(imageSize.width/728, imageSize.height/1131) + 1,
                                               y: (rectangle.rect.origin.y + rectangle.rect.size.height / 2) * min(imageSize.width/728, imageSize.height/1131))
@@ -140,26 +133,27 @@ struct PlayerPanel: View {
                     .frame(width: 60, height: 60)
             }
             .buttonStyle(PlainButtonStyle())
-            VStack(alignment: .leading) {
+            Spacer()
+
+            VStack(alignment: .center) {
                 
                 Text(mushafVM.infoMessage)
                 
                 HStack{
-                    
-                    if !mushafVM.isRecording,
-                       let activeRecording = mushafVM.activeRecording,
-                       mushafVM.recordingExists(activeRecording.uid.uuidString) {
-                        Button {
-                            mushafVM.handlePlayRecordingButton()
-                        } label: {
-                            Image(systemName: mushafVM.isPlaying ? "stop.circle" : "play.circle")
-                                .resizable()
-                                .scaledToFit()
-                                .font(.system(size: 16, weight: .light))
-                                .frame(width: 45, height: 45)
-                        }
-                        .buttonStyle(PlainButtonStyle())
-                    }
+//                    if !mushafVM.isRecording,
+//                       let activeRecording = mushafVM.activeRecording,
+//                       mushafVM.recordingExists(activeRecording.uid.uuidString) {
+//                        Button {
+//                            mushafVM.handlePlayRecordingButton()
+//                        } label: {
+//                            Image(systemName: mushafVM.isPlaying ? "stop.circle" : "play.circle")
+//                                .resizable()
+//                                .scaledToFit()
+//                                .font(.system(size: 16, weight: .light))
+//                                .frame(width: 45, height: 45)
+//                        }
+//                        .buttonStyle(PlainButtonStyle())
+//                    }
                     
                     if mushafVM.isPlaying {
                         Button {
@@ -185,7 +179,6 @@ struct PlayerPanel: View {
                                 .frame(width: 30, height: 30)
                         }
                         .buttonStyle(PlainButtonStyle())
-                        .disabled(!mushafVM.isRecording)
                         
                         
                         
@@ -200,7 +193,6 @@ struct PlayerPanel: View {
                                 .frame(width: 30, height: 30)
                         }
                         .buttonStyle(PlainButtonStyle())
-                        .disabled(!mushafVM.isRecording)
                         
                         Button {
                             mushafVM.handleSpeedButton()
@@ -214,8 +206,22 @@ struct PlayerPanel: View {
                         }
                         .buttonStyle(PlainButtonStyle())
                     } else {
+                        
+                        Button {
+                            mushafVM.isRangeHighlighted.toggle()
+                            print("highlight tapped:", mushafVM.isRangeHighlighted)
+                        } label: {
+                            Image(systemName: mushafVM.isRangeHighlighted ? "line.3.horizontal.circle.fill" : "line.3.horizontal.circle")
+                                .resizable()
+                                .scaledToFit()
+                                .font(.system(size: 16, weight: .light))
+                                .frame(width: 30, height: 30)
+                        }
+                        .buttonStyle(PlainButtonStyle())
+                        
                         Button {
                             print("Previous range")
+                            
                         } label: {
                             Image(systemName: "chevron.left.circle")
                                 .resizable()
@@ -224,9 +230,6 @@ struct PlayerPanel: View {
                                 .frame(width: 30, height: 30)
                         }
                         .buttonStyle(PlainButtonStyle())
-                        .disabled(!mushafVM.isRecording)
-                        
-                        
                         
                         Button {
                             print("Next range")
@@ -238,28 +241,19 @@ struct PlayerPanel: View {
                                 .frame(width: 30, height: 30)
                         }
                         .buttonStyle(PlainButtonStyle())
-                        .disabled(!mushafVM.isRecording)
                         
-                        if mushafVM.isRecording {
-                            Button {
-                                mushafVM.isHidden.toggle()
-                                print("hide tapped:", mushafVM.isHidden)
-                            } label: {
-                                Image(systemName: mushafVM.isHidden ? "eye.circle" : "eye.slash.circle")
-                                    .resizable()
-                                    .scaledToFit()
-                                    .font(.system(size: 16, weight: .light))
-                                    .frame(width: 30, height: 30)
-                            }
-                            .buttonStyle(PlainButtonStyle())
+                        Button {
+                            mushafVM.isHidden.toggle()
+                            print("hide tapped:", mushafVM.isHidden)
+                        } label: {
+                            Image(systemName: mushafVM.isHidden ? "eye.slash.circle.fill" : "eye.slash.circle")
+                                .resizable()
+                                .scaledToFit()
+                                .font(.system(size: 16, weight: .light))
+                                .frame(width: 30, height: 30)
                         }
+                        .buttonStyle(PlainButtonStyle())
                     }
-                    
-                    
-                    
-                    
-                    
-                   
 
                 }
             }

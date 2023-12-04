@@ -15,26 +15,18 @@ public protocol RecorderItem {
     var image: String {get}
 }
 
-// MARK: - PageElement
-public struct Page: Codable {
-    let pageNumber: Int
-    let ayahs: [AyahCoordinate]
-
-    enum CodingKeys: String, CodingKey {
-        case pageNumber = "page_number"
-        case ayahs
-    }
-}
-
 // MARK: - Ayah
-public struct AyahCoordinate: Codable {
-    let surahNumber, ayahNumber: Int
+public struct AyahPart: Codable {
+    let pageNumber,surahNumber, ayahNumber: Int
+    let partNumber: Int?
     let lines: [[WordCoordinate]]
 
     enum CodingKeys: String, CodingKey {
+        case pageNumber = "page_number"
         case surahNumber = "surah_number"
         case ayahNumber = "ayah_number"
         case lines = "lines"
+        case partNumber = "part_number"
     }
     
     var id: String {

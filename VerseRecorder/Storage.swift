@@ -19,8 +19,6 @@ class Storage: NSObject {
     func retrieve(forKey key: String) -> Any? {
         if let any = UserDefaults.standard.object(forKey: key) {
             return any
-        } else if let any = UserDefaults.standard.object(forKey: key) {
-            return any
         } else {
             return nil
         }

@@ -22,7 +22,7 @@ public enum AudioSource: String {
 public class MushafViewModel: NSObject, ObservableObject, AVAudioPlayerDelegate, AVAudioRecorderDelegate {
     
     public var mushafPublication: MushafPublication = .qaloonMadinan
-    public var pages: [Page]
+    private let ayahs: [AyahPart]
     private var audioSource: AudioSource = .alafasyHafs
     private var audioRecorder: AVAudioRecorder?
     
@@ -34,36 +34,19 @@ public class MushafViewModel: NSObject, ObservableObject, AVAudioPlayerDelegate,
         2.0:1.0
     ]
     
-    enum Mode {
-        case player
-        case recorder
+    enum NavigationMode: String {
+        case page
+        case surah
     }
-    @Published var mode: Mode = .player {
-        didSet {
-            if mode == .recorder {
-                setRectanglesForCurrentRange()
-            } else {
-                setRectanglesForCurrentAyah()
-            }
-        }
-    }
-    @Published var ayahRectangles: [RectangleData] = []
     
-    @Published var isHidden = false
-    @Published var infoMessage = "Ready to play"
-    @Published var activeRecording: Recording?
-    @Published var isRecording: Bool = false
-    @Published var isPlaying: Bool = false
-    @Published var isRepeatOn: Bool = false
-    @Published var isShowingText = false
-    
-    @Published var activeItemId: String = UserDefaults.standard.string(forKey: "activeItemId") ?? "001000" {
-        didSet {
-            UserDefaults.standard.set(activeItemId, forKey: "activeItemId")
-            UserDefaults.standard.synchronize()
-            self.infoMessage = isPlaying ? String(self.activeItemId.dropFirst(3)) : ""
-        }
-    }
+    var navigation: NavigationMode = .page
+        
+    lazy var pages: [Int] = {
+        let array = ayahs.map({$0.pageNumber})
+        let set = Set(array)
+        let unique = Array(set)
+        return unique.sorted()
+    }()
     
     @Published var speed: Float = UserDefaults.standard.float(forKey: "playSpeed") {
         didSet {
@@ -80,25 +63,76 @@ public class MushafViewModel: NSObject, ObservableObject, AVAudioPlayerDelegate,
         }
     }
     
-    @Published var currentRangeIndex = UserDefaults.standard.integer(forKey: "currentPageIndex") {
+    @Published var isRangeHighlighted: Bool = UserDefaults.standard.bool(forKey: "isRangeHighlighted") {
         didSet {
-            UserDefaults.standard.set(speed, forKey: "currentPageIndex")
-            UserDefaults.standard.synchronize()
-            
-            if player?.isPlaying ?? false {
-                pausePlayer()
-            }
-            activeItemId = pages[currentRangeIndex].ayahs.first?.id ?? ""
-            if mode == .recorder {
+            UserDefaults.standard.set(isRangeHighlighted, forKey: "isRangeHighlighted")
+            if isRangeHighlighted || isHidden {
                 setRectanglesForCurrentRange()
             } else {
-                setRectanglesForCurrentAyah()
+                ayahRectangles = []
             }
         }
     }
     
+    @Published var currentPage: Int = UserDefaults.standard.integer(forKey: "currentPage") {
+        didSet {
+            currentRange = ayahs.filter({ $0.pageNumber == pages[currentPage]})
+            UserDefaults.standard.set(currentPage, forKey: "currentPage")
+        }
+    }
+
+    @Published var isPlaying: Bool = false
+    @Published var ayahRectangles: [RectangleData] = []
+    @Published var isHidden = false {
+        didSet {
+            if isRangeHighlighted || isHidden {
+                setRectanglesForCurrentRange()
+            } else {
+                ayahRectangles = []
+            }
+        }
+    }
+    @Published var infoMessage = "Ready to play"
+    @Published var activeRecording: Recording?
+    @Published var isRecording: Bool = false
+    @Published var isRepeatOn: Bool = false
+    @Published var isShowingText = false
+    
+    
+    @Published var currentRange = [AyahPart]() {
+        didSet {
+            print(currentRange.map({$0.id}))
+            UserDefaults.standard.set(currentRange.map({$0.id}), forKey: "currentRangeIds")
+            UserDefaults.standard.synchronize()
+            
+            if isPlaying {
+                pausePlayer()
+                setRectanglesForCurrentAyah()
+            } else if isRangeHighlighted || isHidden {
+                setRectanglesForCurrentRange()
+            } else {
+                ayahRectangles = []
+            }
+            
+            if !currentRange.isEmpty,
+                let first = currentRange.first,
+                let last = currentRange.last,
+                let firstSurahName = SurahNames.juzAmma[first.surahNumber]?.1,
+                let lastSurahName = SurahNames.juzAmma[last.surahNumber]?.1 {
+                activeAyah = currentRange[0]
+
+                infoMessage = firstSurahName == lastSurahName ? "\(firstSurahName) \(first.ayahNumber) : \(last.ayahNumber)" : "\(firstSurahName) \(first.ayahNumber) : \(lastSurahName) \(last.ayahNumber)"
+            }
+        }
+        
+        
+    }
+    
+    @Published var activeAyah: AyahPart? = nil
+    
     public var activeItemIndex: Int {
-        if let index = pages[currentRangeIndex].ayahs.firstIndex(where: {$0.id == activeItemId}) {
+        if let activeAyah = self.activeAyah,
+           let index = currentRange.firstIndex(where: {$0.id == activeAyah.id}) {
             return index
         } else {
             return -1
@@ -124,7 +158,7 @@ public class MushafViewModel: NSObject, ObservableObject, AVAudioPlayerDelegate,
     public func handleRepeatButton() {
         isRepeatOn.toggle()
         
-        infoMessage = isRepeatOn ? "Repeat page is enabled" : "Repeat page is disabled"
+//        infoMessage = isRepeatOn ? "Repeat page is enabled" : "Repeat page is disabled"
     }
     
     public func handlePlayRecordingButton() {
@@ -136,7 +170,6 @@ public class MushafViewModel: NSObject, ObservableObject, AVAudioPlayerDelegate,
         }
         
         self.playRecording(activeRecording?.uid.uuidString ?? "")
-        isPlaying = true
     }
     
     public func handlePlayButton() {
@@ -147,8 +180,7 @@ public class MushafViewModel: NSObject, ObservableObject, AVAudioPlayerDelegate,
             return
         }
         
-        self.play(itemId: activeItemId)
-        isPlaying = true
+        self.play()
     }
     
     public func handleNextButton() {
@@ -161,20 +193,24 @@ public class MushafViewModel: NSObject, ObservableObject, AVAudioPlayerDelegate,
     
     public func handleSpeedButton() {
         speed = speedDict[speed] ?? 1.0
-        
-        infoMessage = "Speed set to \(speed)x"
+//        infoMessage = "Speed set to \(speed)x"
     }
     
     public func resetPlayer() {
-        activeItemId = ""
+        activeAyah = nil
         player?.stop()
         player = nil
     }
     
     
-    public init(pages: [Page]) {
-        self.pages = pages
+    public init(ayahs: [AyahPart]) {
+        self.ayahs = ayahs
         super.init()
+        if let currentRangeIds: [String] = UserDefaults.standard.stringArray(forKey: "currentRangeIds")  {
+            self.currentRange = ayahs.filter({ currentRangeIds.contains($0.id) })
+        } else {
+            self.currentRange = ayahs.filter({ $0.pageNumber == pages[currentPage] })
+        }
         setupPlayer()
         setupRemoteTransportControls()
         registerForInterruptions()
@@ -187,14 +223,15 @@ public class MushafViewModel: NSObject, ObservableObject, AVAudioPlayerDelegate,
         updater = nil
     }
     
-    private func play(from source: AudioSource = .husaryHafs, itemId: String) {
+    private func play(from source: AudioSource = .husaryHafs) {
         
-        if itemId.isEmpty,
-           let firstAyahId = pages[currentRangeIndex].ayahs.first?.id  {
-            activeItemId = firstAyahId
-        } else {
-            activeItemId = itemId
+        if activeAyah == nil {
+            activeAyah = currentRange.first
         }
+        
+        guard let activeAyah = activeAyah else {return}
+        
+        self.isPlaying = true
         
         let itemToPlay: String
         
@@ -203,13 +240,13 @@ public class MushafViewModel: NSObject, ObservableObject, AVAudioPlayerDelegate,
             let pattern = ".*[^1]000$"
             let regex = try! NSRegularExpression(pattern: pattern)
             
-            if let _ = regex.firstMatch(in: activeItemId, range: NSRange(activeItemId.startIndex..., in: activeItemId)) {
+            if let _ = regex.firstMatch(in: activeAyah.id, range: NSRange(activeAyah.id.startIndex..., in: activeAyah.id)) {
                 itemToPlay = "001000"
             } else {
-                itemToPlay = activeItemId
+                itemToPlay = activeAyah.id
             }
         } else {
-            itemToPlay = activeItemId
+            itemToPlay = activeAyah.id
         }
         
         setRectanglesForCurrentAyah()
@@ -271,7 +308,7 @@ public class MushafViewModel: NSObject, ObservableObject, AVAudioPlayerDelegate,
     func setRectanglesForCurrentRange() {
         self.ayahRectangles = []
 
-        let lines = pages[currentRangeIndex].ayahs.flatMap( {$0.lines })
+        let lines = currentRange.flatMap( {$0.lines })
         extractRectanges(from: lines)
         
     }
@@ -279,13 +316,8 @@ public class MushafViewModel: NSObject, ObservableObject, AVAudioPlayerDelegate,
     func setRectanglesForCurrentAyah() {
         self.ayahRectangles = []
 
-        if pages.count > currentRangeIndex,
-           let surahNumber = Int(activeItemId.prefix(3)),
-           let ayahNumber = Int(activeItemId.suffix(3)),
-           let ayahCoordinates = pages[currentRangeIndex].ayahs.first(where: {$0.surahNumber == surahNumber && $0.ayahNumber == ayahNumber})  {
-            
-            extractRectanges(from: ayahCoordinates.lines)
-            
+        if let activeAyah = activeAyah {
+            extractRectanges(from: activeAyah.lines)
         }
     }
     
@@ -304,47 +336,43 @@ public class MushafViewModel: NSObject, ObservableObject, AVAudioPlayerDelegate,
     }
     
     private func pausePlayer() {
-        isPlaying = false
         updateNowPlaying()
         self.player?.pause()
+        self.isPlaying = false
     }
     
     private func stopPlayer() {
-        isPlaying = false
         updateNowPlaying()
         self.player?.stop()
+        self.isPlaying = false
     }
     
     private func goToNextItem(){
+        
         if activeItemIndex < 0 {
             /// player is inactive
             /// start from the first ayah in the current range
-            activeItemId = pages[currentRangeIndex].ayahs.first?.id ?? ""
-            play(itemId: activeItemId)
-        } else if activeItemIndex < pages[currentRangeIndex].ayahs.count - 1 {
+            activeAyah = currentRange.first
+            play()
+        } else if activeItemIndex < currentRange.count - 1 {
             /// more items ahead in the current range
             /// keep playing
-            self.activeItemId = pages[currentRangeIndex].ayahs[activeItemIndex+1].id
-            if isPlaying {
-                play(itemId:activeItemId)
-            }
-        } else if isPlaying && isRepeatOn {
+            self.activeAyah = currentRange[activeItemIndex+1]
+            play()
+        } else if isRepeatOn {
             /// repeat is on and we finished playing the range
             /// play the same range from start
-            self.activeItemId = pages[currentRangeIndex].ayahs.first?.id ?? ""
-        } else if currentRangeIndex < pages.count - 1 {
+            self.activeAyah = currentRange.first
+            play()
+        } else if currentPage < pages.count - 1 {
             /// range is done playing and repeat is off
             /// go to next range
-            self.currentRangeIndex += 1
-            self.activeItemId = pages[currentRangeIndex].ayahs.first?.id ?? ""
-            if isPlaying {
-                play(itemId:activeItemId)
-            }
+            self.currentPage += 1
+            play()
         } else {
             /// we reached the end
             /// stop playing
-            self.currentRangeIndex = 0
-            self.activeItemId = ""
+            self.activeAyah = nil
             stopPlayer()
             player = nil
         }
@@ -354,20 +382,16 @@ public class MushafViewModel: NSObject, ObservableObject, AVAudioPlayerDelegate,
     private func goToPreviousItem() {
         
         if activeItemIndex <= 0 { // either first ayah on the page or no active ayah
-            currentRangeIndex = currentRangeIndex > 0 ? currentRangeIndex - 1 : pages.count - 1 // go to previous page
-            activeItemId = pages[currentRangeIndex].ayahs.last?.id ?? ""
-            if isPlaying {
-                play(itemId: activeItemId)
-            }
+            activeAyah = currentRange.first // go to previous page
+            play()
         } else { // we reached the end, go to fatiha and stop playing
-            activeItemId = pages[currentRangeIndex].ayahs[activeItemIndex-1].id
-            if isPlaying {
-                play(itemId: activeItemId)
-            }
+            activeAyah = currentRange[activeItemIndex-1]
+            play()
         }
     }
     
     public func audioPlayerDidFinishPlaying(_ player: AVAudioPlayer, successfully flag: Bool) {
+        self.isPlaying = false
         goToNextItem()
     }
     
@@ -427,9 +451,6 @@ extension MushafViewModel {
             
             player.prepareToPlay()
             player.play()
-            DispatchQueue.main.async {
-                self.isPlaying = true
-            }
         } catch let error as NSError {
             print(#file, #function, #line, #column, error.description)
         }
@@ -465,8 +486,8 @@ extension MushafViewModel {
         
         stopPlayer()
         
-        guard let first = pages[currentRangeIndex].ayahs.first?.id,
-              let last = pages[currentRangeIndex].ayahs.last?.id else {
+        guard let first = currentRange.first?.id,
+              let last = currentRange.last?.id else {
             return
         }
         
@@ -572,7 +593,7 @@ extension MushafViewModel: AVAudioPlayerDelegate {
         
         // Define Now Playing Info
         var nowPlayingInfo = [String : Any]()
-        nowPlayingInfo[MPMediaItemPropertyTitle] = activeItemId
+        nowPlayingInfo[MPMediaItemPropertyTitle] = activeAyah?.id ?? ""
         
         if let image = UIImage(named: "AppIcon") {
             nowPlayingInfo[MPMediaItemPropertyArtwork] = MPMediaItemArtwork(boundsSize: image.size) { size in
