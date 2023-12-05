@@ -13,53 +13,6 @@ public enum MushafPublication {
     case qaloonMadinan
 }
 
-struct SurahNames {
-    
-    static let juzAmma: [Int: (String, String)] = [
-        1: ("الفاتحة", "Al-Fatiha"),
-        78: ("النبأ", "An-Naba"),
-        79: ("النازعات", "An-Nazi'at"),
-        80: ("عبس", "Abasa"),
-        81: ("التكوير", "At-Takwir"),
-        82: ("الإنفطار", "Al-Infitar"),
-        83: ("المطففين", "Al-Mutaffifin"),
-        84: ("الإنشقاق", "Al-Inshiqaq"),
-        85: ("البروج", "Al-Buruj"),
-        86: ("الطارق", "At-Tariq"),
-        87: ("الأعلى", "Al-Ala"),
-        88: ("الغاشية", "Al-Ghashiyah"),
-        89: ("الفجر", "Al-Fajr"),
-        90: ("البلد", "Al-Balad"),
-        91: ("الشمس", "Ash-Shams"),
-        92: ("الليل", "Al-Lail"),
-        93: ("الضحى", "Adh-Dhuha"),
-        94: ("الشرح", "Ash-Sharh"),
-        95: ("التين", "At-Tin"),
-        96: ("العلق", "Al-Alaq"),
-        97: ("القدر", "Al-Qadr"),
-        98: ("البينة", "Al-Bayyinah"),
-        99: ("الزلزلة", "Az-Zalzalah"),
-        100: ("العاديات", "Al-Adiyat"),
-        101: ("القارعة", "Al-Qari'a"),
-        102: ("التكاثر", "At-Takathur"),
-        103: ("العصر", "Al-Asr"),
-        104: ("الهمزة", "Al-Humazah"),
-        105: ("الفيل", "Al-Fil"),
-        106: ("قريش", "Quraish"),
-        107: ("الماعون", "Al-Ma'un"),
-        108: ("الكوثر", "Al-Kawthar"),
-        109: ("الكافرون", "Al-Kafirun"),
-        110: ("النصر", "An-Nasr"),
-        111: ("المسد", "Al-Masad"),
-        112: ("الإخلاص", "Al-Ikhlas"),
-        113: ("الفلق", "Al-Falaq"),
-        114: ("الناس", "An-Nas")
-    ]
-    
-    
-}
-
-
 @available(iOS 15.0.0, *)
 public struct MushafView: View {
     
@@ -75,10 +28,11 @@ public struct MushafView: View {
         
         HStack(alignment: .bottom) {
             Text(mushafVM.rangeString)
+                .font(.headline)
             Spacer()
-            Text(String(mushafVM.pages[mushafVM.currentPageIndex]))
+            Text("p. " + String(mushafVM.pages[mushafVM.currentPageIndex]))
         }
-        .padding(.horizontal, 16)
+        .padding(16)
         
         TabView(selection: $mushafVM.currentPageIndex) {
             ForEach(0..<mushafVM.pages.count, id: \.self) { index in
@@ -127,23 +81,23 @@ struct PlayerPanel: View {
     @StateObject var mushafVM: MushafViewModel
     
     var body: some View {
-        HStack(alignment: .top) {
-//            Button {
-//                mushafVM.handleRecordButton()
-//            } label: {
-//                Image(systemName: mushafVM.isRecording ? "stop.circle.fill" : "mic.circle.fill")
-//                    .resizable()
-//                    .scaledToFit()
-//                    .foregroundColor(Color(uiColor: .systemGreen))
-//                    .font(.system(size: 20, weight: .ultraLight))
-//                    .frame(width: 60, height: 60)
-//            }
-//            .buttonStyle(PlainButtonStyle())
-//            Spacer()
-
-            VStack(alignment: .leading) {
+        HStack(alignment: .center) {
+            //            Button {
+            //                mushafVM.handleRecordButton()
+            //            } label: {
+            //                Image(systemName: mushafVM.isRecording ? "stop.circle.fill" : "mic.circle.fill")
+            //                    .resizable()
+            //                    .scaledToFit()
+            //                    .foregroundColor(Color(uiColor: .systemGreen))
+            //                    .font(.system(size: 20, weight: .ultraLight))
+            //                    .frame(width: 60, height: 60)
+            //            }
+            //            .buttonStyle(PlainButtonStyle())
+            //            Spacer()
+            
+            VStack(alignment: .center) {
                 
-                HStack {
+                HStack(spacing: 12) {
                     //                    if !mushafVM.isRecording,
                     //                       let activeRecording = mushafVM.activeRecording,
                     //                       mushafVM.recordingExists(activeRecording.uid.uuidString) {
@@ -153,103 +107,103 @@ struct PlayerPanel: View {
                     //                            Image(systemName: mushafVM.isPlaying ? "stop.circle" : "play.circle")
                     //                                .resizable()
                     //                                .scaledToFit()
-                    //                                .font(.system(size: 16, weight: .light))
+                    //                                .font(.system(size: 16, weight: .ultraLight))
+
                     //                                .frame(width: 45, height: 45)
                     //                        }
                     //                        .buttonStyle(PlainButtonStyle())
                     //                    }
                     
-                    //                    if mushafVM.isPlaying {
-                    Button {
-                        mushafVM.handleRepeatButton()
-                        print("repeat tapped")
-                    } label: {
-                        Image(systemName: mushafVM.isRepeatOn ? "repeat.circle.fill" : "repeat.circle")
-                            .resizable()
-                            .scaledToFit()
-                            .font(.system(size: 16, weight: .light))
-                            .frame(width: 30, height: 30)
-                    }
-                    .buttonStyle(PlainButtonStyle())
-                    
-                    Button {
-                        mushafVM.handlePreviousButton()
-                        print("backward tapped!")
-                    } label: {
-                        Image(systemName: "backward.circle")
-                            .resizable()
-                            .scaledToFit()
-                            .font(.system(size: 16, weight: .light))
-                            .frame(width: 30, height: 30)
-                    }
-                    .buttonStyle(PlainButtonStyle())
-                    
-                    
-                    
-                    Button {
-                        mushafVM.handleNextButton()
-                        print("forward tapped!")
-                    } label: {
-                        Image(systemName: "forward.circle")
-                            .resizable()
-                            .scaledToFit()
-                            .font(.system(size: 16, weight: .light))
-                            .frame(width: 30, height: 30)
-                    }
-                    .buttonStyle(PlainButtonStyle())
-                    
-                    Button {
-                        mushafVM.handleSpeedButton()
-                        print("speed tapped:", mushafVM.speed)
-                    } label: {
-                        Image(systemName: "speedometer")
-                            .resizable()
-                            .scaledToFit()
-                            .font(.system(size: 16, weight: .light))
-                            .frame(width: 30, height: 30)
-                    }
-                    .buttonStyle(PlainButtonStyle())
-                    //                    } else {
-                    
-                    //                        Button {
-                    //                            mushafVM.isRangeHighlighted.toggle()
-                    //                            print("highlight tapped:", mushafVM.isRangeHighlighted)
-                    //                        } label: {
-                    //                            Image(systemName: mushafVM.isRangeHighlighted ? "line.3.horizontal.circle.fill" : "line.3.horizontal.circle")
-                    //                                .resizable()
-                    //                                .scaledToFit()
-                    //                                .font(.system(size: 16, weight: .light))
-                    //                                .frame(width: 30, height: 30)
-                    //                        }
-                    //                        .buttonStyle(PlainButtonStyle())
-                    
-                        
+                    if mushafVM.isPlaying {
                         Button {
-                            print("Previous range")
-                            mushafVM.handlePreviousRangeButton()
+                            mushafVM.handleRepeatButton()
+                            print("repeat tapped")
                         } label: {
-                            Image(systemName: "chevron.left.circle")
+                            Image(systemName: mushafVM.isRepeatOn ? "repeat.circle.fill" : "repeat.circle")
                                 .resizable()
                                 .scaledToFit()
-                                .font(.system(size: 16, weight: .light))
-                                .frame(width: 30, height: 30)
+                                .font(.system(size: 16, weight: .ultraLight))
+                                .frame(width: 36, height: 36)
                         }
                         .buttonStyle(PlainButtonStyle())
+                        
+                        Button {
+                            mushafVM.handleNextButton()
+                            print("forward tapped!")
+                        } label: {
+                            Image(systemName: "backward.circle")
+                                .resizable()
+                                .scaledToFit()
+                                .font(.system(size: 16, weight: .ultraLight))
+                                .frame(width: 36, height: 36)
+                        }
+                        .buttonStyle(PlainButtonStyle())
+                        
+                        
+                        Button {
+                            mushafVM.handlePreviousButton()
+                            print("backward tapped!")
+                        } label: {
+                            Image(systemName: "forward.circle")
+                                .resizable()
+                                .scaledToFit()
+                                .font(.system(size: 16, weight: .ultraLight))
+                                .frame(width: 36, height: 36)
+                        }
+                        .buttonStyle(PlainButtonStyle())
+                        
+                        Button {
+                            mushafVM.handleSpeedButton()
+                            print("speed tapped:", mushafVM.speed)
+                        } label: {
+                            Image(systemName: "speedometer")
+                                .resizable()
+                                .scaledToFit()
+                                .font(.system(size: 16, weight: .ultraLight))
+                                .frame(width: 36, height: 36)
+                        }
+                        .buttonStyle(PlainButtonStyle())
+                    } else {
+                        
+                        Button {
+                            /// show modal view
+                            mushafVM.showNavigation = true
+                        } label: {
+                            Image(systemName: "list.bullet.circle")
+                                .resizable()
+                                .scaledToFit()
+                                .font(.system(size: 16, weight: .ultraLight))
+                                .frame(width: 36, height: 36)
+                        }
+                        .buttonStyle(PlainButtonStyle())
+                        .sheet(isPresented: $mushafVM.showNavigation) {
+                                    NavigationListView(mushafVM: mushafVM)
+                                }
                         
                         Button {
                             print("Next range")
                             mushafVM.handleNextRangeButton()
                         } label: {
-                            Image(systemName: "chevron.right.circle")
+                            Image(systemName: "chevron.left.circle")
                                 .resizable()
                                 .scaledToFit()
-                                .font(.system(size: 16, weight: .light))
-                                .frame(width: 30, height: 30)
+                                .font(.system(size: 16, weight: .ultraLight))
+                                .frame(width: 36, height: 36)
                         }
                         .buttonStyle(PlainButtonStyle())
                         
-                    if !mushafVM.isPlaying {
-
+                        Button {
+                            print("Previous range")
+                            mushafVM.handlePreviousRangeButton()
+                        } label: {
+                            Image(systemName: "chevron.right.circle")
+                                .resizable()
+                                .scaledToFit()
+                                .font(.system(size: 16, weight: .ultraLight))
+                                .frame(width: 36, height: 36)
+                        }
+                        .buttonStyle(PlainButtonStyle())
+                        
                         Button {
                             mushafVM.isHidden.toggle()
                             print("hide tapped:", mushafVM.isHidden)
@@ -257,17 +211,16 @@ struct PlayerPanel: View {
                             Image(systemName: mushafVM.isHidden ? "eye.slash.circle.fill" : "eye.slash.circle")
                                 .resizable()
                                 .scaledToFit()
-                                .font(.system(size: 16, weight: .light))
-                                .frame(width: 30, height: 30)
+                                .font(.system(size: 16, weight: .ultraLight))
+                                .frame(width: 36, height: 36)
                         }
                         .buttonStyle(PlainButtonStyle())
+                        
+                        
                     }
                 }
-                
                 Text(mushafVM.infoMessage)
-
-                }
-//            }
+            }
             
             Spacer()
             
@@ -282,9 +235,44 @@ struct PlayerPanel: View {
                     .frame(width: 60, height: 60)
             }
             .buttonStyle(PlainButtonStyle())
+            .scaleEffect(x: -1, y: 1)
             
         }
         .padding(.horizontal, 16)
         .padding(.bottom, 24)
+    }
+}
+
+
+@available(iOS 15.0, *)
+struct NavigationListView: View {
+    
+    @StateObject var mushafVM: MushafViewModel
+    
+    var body: some View {
+        NavigationView {
+            List {
+                let sortedSurahNumbers = SurahNames.juzAmma.keys.sorted()
+                ForEach(sortedSurahNumbers, id: \.self) { surahNumber in
+                    Button(action: {
+                        mushafVM.currentSurahIndex = sortedSurahNumbers.firstIndex(of: surahNumber) ?? 0
+                        mushafVM.showNavigation = false
+                    }) {
+                        HStack {
+                            Text("\(surahNumber). \(SurahNames.juzAmma[surahNumber]!.1)")
+                            Spacer()
+                            Image(systemName: "chevron.right")
+                        }
+
+                    }
+                    .buttonStyle(PlainButtonStyle())
+                    
+                }
+            }
+            .navigationBarTitle("Surahs", displayMode: .inline)
+            .navigationBarItems(trailing: Button("Done") {
+                // Code to dismiss the view
+            })
+        }
     }
 }

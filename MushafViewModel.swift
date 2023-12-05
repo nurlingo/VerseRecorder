@@ -26,6 +26,132 @@ public class MushafViewModel: NSObject, ObservableObject, AVAudioPlayerDelegate,
     private var audioSource: AudioSource = .alafasyHafs
     private var audioRecorder: AVAudioRecorder?
     
+    @Published var speed: Float = UserDefaults.standard.float(forKey: "playSpeed") {
+        didSet {
+            UserDefaults.standard.set(speed, forKey: "playSpeed")
+            UserDefaults.standard.synchronize()
+            
+            if let player = player, player.isPlaying {
+                player.stop()
+                player.enableRate = true
+                player.rate = speed
+                player.prepareToPlay()
+                player.play()
+            }
+        }
+    }
+    
+    @Published var showNavigation = false
+    
+    @Published var currentSurahIndex: Int =  UserDefaults.standard.integer(forKey: "currentSurahIndex"){
+        didSet {
+            if navigation == .surah {
+                currentRange = surahAyahs[SurahNames.juzAmma.keys.sorted()[currentSurahIndex]] ?? []
+                
+                /// check that the page actually needs to change to avoid circular calls
+                
+                let surahPageNumbers = Array(Set(currentRange.map{ $0.pageNumber })).sorted()
+                
+                if !surahPageNumbers.contains(pages[currentPageIndex]),
+                   let pageNumber = currentRange.first?.pageNumber,
+                   let pageIndex = pages.firstIndex(where: {$0 == pageNumber}){
+                    currentPageIndex = pageIndex
+                }
+                
+            }
+            UserDefaults.standard.set(currentSurahIndex, forKey: "currentSurahIndex")
+        }
+    }
+    
+    @Published var currentPageIndex: Int = UserDefaults.standard.integer(forKey: "currentPageIndex") {
+        didSet {
+            if navigation == .surah {
+                /// if the current surah is not present on the new page
+                /// then put the first surah on that page as the current
+                if !currentRange.contains(where: { $0.pageNumber == pages[currentPageIndex] } ) {
+                    
+                    let pageNumber = pages[currentPageIndex]
+                    
+                    if let beginningOfSurahOnThePage = pageAyahs[pageNumber]?.first(where: { $0.ayahNumber == 0 }) {
+                        let surahNumbers = SurahNames.juzAmma.keys.sorted()
+                        if let surahIndex = surahNumbers.firstIndex(where: {$0 == beginningOfSurahOnThePage.surahNumber}),
+                        currentSurahIndex != surahIndex {
+                            currentSurahIndex = surahIndex
+                        }
+                    } else if let firstAyahOnThePage = pageAyahs[pageNumber]?.first {
+                        let surahNumbers = SurahNames.juzAmma.keys.sorted()
+                        if let surahIndex = surahNumbers.firstIndex(where: {$0 == firstAyahOnThePage.surahNumber}),
+                        currentSurahIndex != surahIndex {
+                            currentSurahIndex = surahIndex
+                        }
+                    }
+                }
+                   
+                setRectanglesForCurrentRange()
+                
+            } else {
+                currentRange = pageAyahs[pages[currentPageIndex]] ?? []
+            }
+            
+            UserDefaults.standard.set(currentPageIndex, forKey: "currentPageIndex")
+        }
+    }
+
+    @Published var isPlaying: Bool = false
+    @Published var ayahRectangles: [RectangleData] = []
+    @Published var isHidden = false {
+        didSet {
+            setRectanglesForCurrentRange()
+        }
+    }
+
+    @Published var rangeString = ""
+    @Published var infoMessage = " " {
+        didSet {
+            let currentMessage = infoMessage
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+                if self.infoMessage != " ",
+                   self.infoMessage == currentMessage {
+                    self.infoMessage = " "
+                }
+            }
+        }
+    }
+    @Published var activeRecording: Recording?
+    @Published var isRecording: Bool = false
+    @Published var isRepeatOn: Bool = false
+    @Published var isShowingText = false
+    
+    @Published var activeAyah: AyahPart? = nil
+
+    @Published var currentRange = [AyahPart]() {
+        didSet {
+            print(currentRange.map({$0.id}))
+            UserDefaults.standard.set(currentRange.map({$0.id}), forKey: "currentRangeIds")
+            UserDefaults.standard.synchronize()
+            
+            if isPlaying {
+                pausePlayer()
+                setRectanglesForCurrentAyah()
+            } else {
+                setRectanglesForCurrentRange()
+            }
+            
+            if !currentRange.isEmpty,
+                let first = currentRange.first,
+                let last = currentRange.last,
+                let firstSurahName = SurahNames.juzAmma[first.surahNumber]?.1,
+                let lastSurahName = SurahNames.juzAmma[last.surahNumber]?.1 {
+                activeAyah = currentRange[0]
+
+                rangeString = firstSurahName == lastSurahName ? "\(first.surahNumber). \(firstSurahName) \(first.ayahNumber):\(last.ayahNumber)" : "\(first.surahNumber). \(firstSurahName) \(first.ayahNumber) : \(last.surahNumber). \(lastSurahName) \(last.ayahNumber)"
+            }
+        }
+        
+        
+    }
+    
+    
     private let speedDict: [Float:Float] = [
         1.0:1.25,
         1.25:1.5,
@@ -39,7 +165,7 @@ public class MushafViewModel: NSObject, ObservableObject, AVAudioPlayerDelegate,
         case surah
     }
     
-    var navigation: NavigationMode = .surah
+    private var navigation: NavigationMode = .surah
     
     lazy var surahAyahs: [Int:[AyahPart]] = {
         var dict = [Int:[AyahPart]]()
@@ -64,140 +190,9 @@ public class MushafViewModel: NSObject, ObservableObject, AVAudioPlayerDelegate,
         return unique.sorted()
     }()
     
-    @Published var speed: Float = UserDefaults.standard.float(forKey: "playSpeed") {
-        didSet {
-            UserDefaults.standard.set(speed, forKey: "playSpeed")
-            UserDefaults.standard.synchronize()
-            
-            if let player = player, player.isPlaying {
-                player.stop()
-                player.enableRate = true
-                player.rate = speed
-                player.prepareToPlay()
-                player.play()
-            }
-        }
+    var currentRangePages: [Int] {
+        Array(Set(currentRange.map( {$0.pageNumber} ))).sorted()
     }
-    
-    @Published var isRangeHighlighted: Bool = true
-//    UserDefaults.standard.bool(forKey: "isRangeHighlighted") {
-//        didSet {
-//            UserDefaults.standard.set(isRangeHighlighted, forKey: "isRangeHighlighted")
-//            if isRangeHighlighted || isHidden {
-//                setRectanglesForCurrentRange()
-//            } else {
-//                ayahRectangles = []
-//            }
-//        }
-//    }
-    
-    
-    @Published var currentSurahIndex: Int =  UserDefaults.standard.integer(forKey: "currentSurahIndex"){
-        didSet {
-            if navigation == .surah {
-                currentRange = surahAyahs[SurahNames.juzAmma.keys.sorted()[currentSurahIndex]] ?? []
-                
-                if let pageNumber = currentRange.first?.pageNumber,
-                   let pageIndex = pages.firstIndex(where: {$0 == pageNumber}),
-                   currentPageIndex != pageIndex {
-                    currentPageIndex = pageIndex
-                }
-            }
-            UserDefaults.standard.set(currentSurahIndex, forKey: "currentSurahIndex")
-        }
-    }
-    
-    @Published var currentPageIndex: Int = UserDefaults.standard.integer(forKey: "currentPageIndex") {
-        didSet {
-            if navigation == .surah {
-                /// if the current surah is not present on the new page
-                /// then put the first surah on that page as the current
-                if !currentRange.contains(where: { $0.pageNumber == pages[currentPageIndex] } ) {
-                    
-                    let pageNumber = pages[currentPageIndex]
-                    
-                    if let firstAyahOnThePage = pageAyahs[pageNumber]?.first(where: { $0.ayahNumber == 0 }) {
-                        let surahNumbers = SurahNames.juzAmma.keys.sorted()
-                        if let surahIndex = surahNumbers.firstIndex(where: {$0 == firstAyahOnThePage.surahNumber}),
-                        currentSurahIndex != surahIndex {
-                            currentSurahIndex = surahIndex
-                        }
-                    }
-                }
-                   
-                if isRangeHighlighted || isHidden {
-                    setRectanglesForCurrentRange()
-                } else {
-                    ayahRectangles = []
-                }
-                
-            } else {
-                currentRange = pageAyahs[pages[currentPageIndex]] ?? []
-            }
-            
-            UserDefaults.standard.set(currentPageIndex, forKey: "currentPageIndex")
-        }
-    }
-
-    @Published var isPlaying: Bool = false
-    @Published var ayahRectangles: [RectangleData] = []
-    @Published var isHidden = false {
-        didSet {
-            if isRangeHighlighted || isHidden {
-                setRectanglesForCurrentRange()
-            } else {
-                ayahRectangles = []
-            }
-        }
-    }
-    @Published var rangeString = ""
-    @Published var infoMessage = " " {
-        didSet {
-            let currentMessage = infoMessage
-            DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
-                if self.infoMessage != " ",
-                   self.infoMessage == currentMessage {
-                    self.infoMessage = " "
-                }
-            }
-        }
-    }
-    @Published var activeRecording: Recording?
-    @Published var isRecording: Bool = false
-    @Published var isRepeatOn: Bool = false
-    @Published var isShowingText = false
-    
-    
-    @Published var currentRange = [AyahPart]() {
-        didSet {
-            print(currentRange.map({$0.id}))
-            UserDefaults.standard.set(currentRange.map({$0.id}), forKey: "currentRangeIds")
-            UserDefaults.standard.synchronize()
-            
-            if isPlaying {
-                pausePlayer()
-                setRectanglesForCurrentAyah()
-            } else if isRangeHighlighted || isHidden {
-                setRectanglesForCurrentRange()
-            } else {
-                ayahRectangles = []
-            }
-            
-            if !currentRange.isEmpty,
-                let first = currentRange.first,
-                let last = currentRange.last,
-                let firstSurahName = SurahNames.juzAmma[first.surahNumber]?.1,
-                let lastSurahName = SurahNames.juzAmma[last.surahNumber]?.1 {
-                activeAyah = currentRange[0]
-
-                rangeString = firstSurahName == lastSurahName ? "\(first.surahNumber). \(firstSurahName) \(first.ayahNumber):\(last.ayahNumber)" : "\(first.surahNumber). \(firstSurahName) \(first.ayahNumber) : \(last.surahNumber). \(lastSurahName) \(last.ayahNumber)"
-            }
-        }
-        
-        
-    }
-    
-    @Published var activeAyah: AyahPart? = nil
     
     public var activeItemIndex: Int {
         if let activeAyah = self.activeAyah,
@@ -291,7 +286,6 @@ public class MushafViewModel: NSObject, ObservableObject, AVAudioPlayerDelegate,
         } else {
             self.currentRange = pageAyahs[pages[currentPageIndex]] ?? []
         }
-        setupPlayer()
         setupRemoteTransportControls()
         registerForInterruptions()
     }
@@ -310,6 +304,13 @@ public class MushafViewModel: NSObject, ObservableObject, AVAudioPlayerDelegate,
         }
         
         guard let activeAyah = activeAyah else {return}
+        
+        let currentPageNumber = pages[currentPageIndex]
+        if activeAyah.pageNumber != currentPageNumber,
+           let pageIndex = pages.firstIndex(where: {$0 == activeAyah.pageNumber}) {
+            currentPageIndex = pageIndex
+        }
+        
         
         self.isPlaying = true
         self.isHidden = false
@@ -429,17 +430,23 @@ public class MushafViewModel: NSObject, ObservableObject, AVAudioPlayerDelegate,
     }
     
     private func goToNextRange(){
-        if currentSurahIndex < SurahNames.juzAmma.keys.count - 1 {
+        if let lastPageInCurrenRange = currentRangePages.last,
+           lastPageInCurrenRange > pages[currentPageIndex] {
+            currentPageIndex += 1
+        } else if currentSurahIndex < SurahNames.juzAmma.keys.count - 1 {
             self.currentSurahIndex += 1
         } else {
             self.currentSurahIndex = SurahNames.juzAmma.keys.count - 1
         }
     }
     
-    
     private func goToPreviousRange() {
-        if currentSurahIndex <= 1 {
-            currentSurahIndex = 1
+        
+        if let firstPageInCurrenRange = currentRangePages.first,
+           firstPageInCurrenRange < pages[currentPageIndex] {
+            currentPageIndex -= 1
+        } else if currentSurahIndex <= 0 {
+            currentSurahIndex = 0
         } else if currentSurahIndex <= SurahNames.juzAmma.keys.count - 1 {
             self.currentSurahIndex -= 1
         }
@@ -622,13 +629,7 @@ extension MushafViewModel {
 
 @available(iOS 15.0, *)
 extension MushafViewModel: AVAudioPlayerDelegate {
-    
-    private func setupPlayer() {
-        if let actualSpeedValue = UserDefaults.standard.object(forKey: "playSpeed") as? Float {
-            self.speed = actualSpeedValue
-        }
-    }
-    
+        
     private func registerForInterruptions() {
         let notificationCenter = NotificationCenter.default
         notificationCenter.addObserver(self,
