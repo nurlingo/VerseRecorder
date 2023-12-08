@@ -170,14 +170,14 @@ class UploaderService {
         }
     }
     
-    func upload(_ recording: Recording) async {
+    func upload(_ recording: RangeRecording) async {
         
         // FIXME: this is not reusable actually.
         
-        print("uploading \(recording.uid.uuidString)")
+        print("uploading \(recording.id.uuidString)")
         
-        let surahNumber = recording.first.prefix(recording.first.count-3)
-        let ayahNumber = recording.first.suffix(3)
+        let surahNumber = recording.start.prefix(recording.start.count-3)
+        let ayahNumber = recording.start.suffix(3)
         print(surahNumber)
         print(ayahNumber)
         
@@ -192,14 +192,14 @@ class UploaderService {
         request.setValue("multipart/form-data; boundary=\(boundary)", forHTTPHeaderField: "Content-Type")
         
         do {
-            let path = recordingStorage.getPath(for: recording.uid.uuidString)
+            let path = recordingStorage.getPath(for: recording.id.uuidString)
             let audioData = try Data(contentsOf: path)
             
             var data = Data()
             
             // Add the image data to the raw http request data
             data.append("\r\n--\(boundary)\r\n".data(using: .utf8)!)
-            data.append("Content-Disposition: form-data; name=\"audio_file\"; filename=\"\(recording.uid.uuidString).m4a\"\r\n".data(using: .utf8)!)
+            data.append("Content-Disposition: form-data; name=\"audio_file\"; filename=\"\(recording.id.uuidString).m4a\"\r\n".data(using: .utf8)!)
             data.append("Content-Type: audio/m4a\r\n\r\n".data(using: .utf8)!)
             data.append(audioData)
             data.append("\r\n--\(boundary)--\r\n".data(using: .utf8)!)

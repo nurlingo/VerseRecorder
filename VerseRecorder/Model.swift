@@ -46,16 +46,44 @@ struct RectangleData: Identifiable {
     var rect: CGRect
 }
 
-struct Recording: Codable {
+public struct RangeRecording: Codable, Identifiable {
     let date: Date
-    let first: String
-    let last: String
-    let uid: UUID
+    let start: String
+    let end: String
+    public let id: UUID
     
-    init(first: String, last: String) {
+    init(start: String, end: String) {
         self.date = Date()
-        self.first = first
-        self.last = last
-        self.uid = UUID()
+        self.start = start
+        self.end = end
+        self.id = UUID()
+    }
+    
+    var title: String {
+        
+        if let startSurahNumber = Int(start.prefix(3)),
+           let startAyahNumber = Int(start.suffix(3)),
+            let startSurahName = SurahNames.juzAmma[startSurahNumber]?.1,
+           let endSurahNumber = Int(end.prefix(3)),
+              let endAyahNumber = Int(end.suffix(3)),
+           let endSurahName = SurahNames.juzAmma[endSurahNumber]?.1 {
+            
+            let title = startSurahNumber == endSurahNumber ? "\(startSurahName) \(startAyahNumber)-\(endAyahNumber)" : "\(startSurahName) \(startAyahNumber) - \(endSurahName) \(endAyahNumber)"
+            return title
+        } else {
+            return ""
+        }
+        
+    }
+    
+    var description: String {
+        let formatter = DateFormatter()
+        formatter.dateFormat = "MMM dd, HH:mm"
+        let dateString = formatter.string(from: date)
+        return dateString
+    }
+    
+    var url: URL {
+        RecordingStorage.shared.getPath(for: id.uuidString)
     }
 }
