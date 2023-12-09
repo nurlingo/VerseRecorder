@@ -29,6 +29,26 @@ public class PrayerViewModel: NSObject, ObservableObject, AVAudioPlayerDelegate,
         2.0:1.0
     ]
     
+    public let ayahs: [AyahPart]
+    
+    var standardMessage = "Husary (Qaloon)" {
+        didSet {
+            self.setInfoMessage(standardMessage)
+        }
+    }
+    
+    @Published var infoMessage = "" {
+        didSet {
+            let currentMessage = infoMessage
+            DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+                if self.infoMessage != self.standardMessage,
+                   self.infoMessage == currentMessage {
+                    self.infoMessage = self.standardMessage
+                }
+            }
+        }
+    }
+    
     @Published var speed: Float = UserDefaults.standard.float(forKey: "playSpeed") {
         didSet {
             UserDefaults.standard.set(speed, forKey: "playSpeed")
@@ -50,7 +70,8 @@ public class PrayerViewModel: NSObject, ObservableObject, AVAudioPlayerDelegate,
     static var player: AVAudioPlayer?
     var activeItemId: String = ""
     
-    public override init() {
+    public init(ayahs: [AyahPart]) {
+        self.ayahs = ayahs
         super.init()
         setupRemoteTransportControls()
         registerForInterruptions()
@@ -66,6 +87,11 @@ public class PrayerViewModel: NSObject, ObservableObject, AVAudioPlayerDelegate,
     
     public func handleRepeatButton() {
         isRepeatOn.toggle()
+        setInfoMessage(isRepeatOn ? "Repeat enabled" : "Repeat disabled")
+    }
+    
+    func setInfoMessage(_ text: String) {
+        infoMessage = text
     }
     
     public func handlePlayButton() {
@@ -89,6 +115,7 @@ public class PrayerViewModel: NSObject, ObservableObject, AVAudioPlayerDelegate,
     
     public func handleSpeedButton() {
         speed = speedDict[speed] ?? 1.0
+        setInfoMessage("Speed set to \(speed)x")
     }
     
     deinit {

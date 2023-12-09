@@ -18,6 +18,10 @@ public class RecorderViewModel: PrayerViewModel {
     lazy var recordingStorage: RecordingStorage = RecordingStorage.shared
     lazy var uploader: UploaderService = UploaderService(credentials: credentials)
 
+    override public init(ayahs: [AyahPart]) {
+        super.init(ayahs: ayahs)
+        standardMessage = ""
+    }
     
     public override func goToNextItem(){
         playActiveItem()
@@ -51,6 +55,7 @@ public class RecorderViewModel: PrayerViewModel {
             resetRecorder()
             if let activeRecording = activeRecording {
                 print(activeRecording.date)
+                setInfoMessage("Recording saved")
 //                uploader.upload(activeRecording)
             }
         } else {

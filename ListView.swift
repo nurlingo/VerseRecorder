@@ -79,8 +79,10 @@ struct ListView: View {
                                            let activeRecording = recorderVM.activeRecording,
                                            activeRecording.id == recording.id {
                                             Image(systemName: "pause")
+                                                .frame(width: 30)
                                         } else {
                                             Image(systemName: "waveform")
+                                                .frame(width: 30)
                                         }
                                         
                                         VStack(alignment: .leading) {

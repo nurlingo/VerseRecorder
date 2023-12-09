@@ -11,7 +11,6 @@ import AVFoundation
 public class MushafViewModel: PrayerViewModel {
     
     public var mushafPublication: MushafPublication = .qaloonMadinan
-    private let ayahs: [AyahPart]
     private var audioSource: AudioSource = .alafasyHafs
     
     @Published var showNavigation = false
@@ -166,14 +165,15 @@ public class MushafViewModel: PrayerViewModel {
         goToPreviousRange()
     }
     
-    public init(ayahs: [AyahPart]) {
-        self.ayahs = ayahs
-        super.init()
+    override public init(ayahs: [AyahPart]) {
+        super.init(ayahs: ayahs)
         if let currentRangeIds: [String] = UserDefaults.standard.stringArray(forKey: "currentRangeIds")  {
             self.currentRange = ayahs.filter({ currentRangeIds.contains($0.id) })
         } else {
             self.currentRange = pageAyahs[pages[currentPageIndex]] ?? []
         }
+        
+        self.standardMessage = "Husary (Qaloon)"
     }
     
     var source: AudioSource = .husaryHafs

@@ -14,7 +14,7 @@ struct PlayerPanel: View {
     @StateObject var recorderVM: RecorderViewModel
     
     var body: some View {
-        HStack(alignment: .center) {
+        HStack(alignment: .bottom) {
             Button {
                 
                 if let firstAyahInRange = mushafVM.currentRange.first,
@@ -35,21 +35,52 @@ struct PlayerPanel: View {
             
             VStack(alignment: .center) {
                 
-                HStack(spacing: 12) {
+                HStack {
+                    if !recorderVM.infoMessage.isEmpty && mushafVM.infoMessage == mushafVM.standardMessage {
+                        Text(recorderVM.infoMessage)
+                            .font(.footnote)
+                    } else {
+                        if mushafVM.infoMessage == mushafVM.standardMessage {
+                            Image(systemName: "waveform")
+                                .font(.footnote)
+                        }
+                        
+                        Text(mushafVM.infoMessage)
+                            .font(.footnote)
+                    }
+                }
+                
+                HStack(spacing: 6) {
+                    
+                    Button {
+                        /// show modal view
+                        mushafVM.showNavigation = true
+                    } label: {
+                        Image(systemName: "list.bullet.circle")
+                            .resizable()
+                            .scaledToFit()
+                            .font(.system(size: 16, weight: .ultraLight))
+                            .frame(width: 32, height: 32)
+                    }
+                    .buttonStyle(PlainButtonStyle())
+                    .sheet(isPresented: $mushafVM.showNavigation) {
+                        ListView(mushafVM: mushafVM, recorderVM: recorderVM)
+                    }
+                    
+                    Button {
+                        mushafVM.handleRepeatButton()
+                        print("repeat tapped")
+                    } label: {
+                        Image(systemName: mushafVM.isRepeatOn ? "repeat.circle.fill" : "repeat.circle")
+                            .resizable()
+                            .scaledToFit()
+                            .font(.system(size: 16, weight: .ultraLight))
+                            .frame(width: 32, height: 32)
+                    }
+                    .buttonStyle(PlainButtonStyle())
                     
                     if mushafVM.isPlaying {
-                        Button {
-                            mushafVM.handleRepeatButton()
-                            print("repeat tapped")
-                        } label: {
-                            Image(systemName: mushafVM.isRepeatOn ? "repeat.circle.fill" : "repeat.circle")
-                                .resizable()
-                                .scaledToFit()
-                                .font(.system(size: 16, weight: .ultraLight))
-                                .frame(width: 36, height: 36)
-                        }
-                        .buttonStyle(PlainButtonStyle())
-                        
+                       
                         Button {
                             mushafVM.handleNextButton()
                             print("forward tapped!")
@@ -58,10 +89,9 @@ struct PlayerPanel: View {
                                 .resizable()
                                 .scaledToFit()
                                 .font(.system(size: 16, weight: .ultraLight))
-                                .frame(width: 36, height: 36)
+                                .frame(width: 32, height: 32)
                         }
                         .buttonStyle(PlainButtonStyle())
-                        
                         
                         Button {
                             mushafVM.handlePreviousButton()
@@ -71,37 +101,11 @@ struct PlayerPanel: View {
                                 .resizable()
                                 .scaledToFit()
                                 .font(.system(size: 16, weight: .ultraLight))
-                                .frame(width: 36, height: 36)
+                                .frame(width: 32, height: 32)
                         }
                         .buttonStyle(PlainButtonStyle())
                         
-                        Button {
-                            mushafVM.handleSpeedButton()
-                            print("speed tapped:", mushafVM.speed)
-                        } label: {
-                            Image(systemName: "speedometer")
-                                .resizable()
-                                .scaledToFit()
-                                .font(.system(size: 16, weight: .ultraLight))
-                                .frame(width: 36, height: 36)
-                        }
-                        .buttonStyle(PlainButtonStyle())
                     } else {
-                        
-                        Button {
-                            /// show modal view
-                            mushafVM.showNavigation = true
-                        } label: {
-                            Image(systemName: "list.bullet.circle")
-                                .resizable()
-                                .scaledToFit()
-                                .font(.system(size: 16, weight: .ultraLight))
-                                .frame(width: 36, height: 36)
-                        }
-                        .buttonStyle(PlainButtonStyle())
-                        .sheet(isPresented: $mushafVM.showNavigation) {
-                            ListView(mushafVM: mushafVM, recorderVM: recorderVM)
-                        }
                         
                         Button {
                             print("Next range")
@@ -111,7 +115,7 @@ struct PlayerPanel: View {
                                 .resizable()
                                 .scaledToFit()
                                 .font(.system(size: 16, weight: .ultraLight))
-                                .frame(width: 36, height: 36)
+                                .frame(width: 32, height: 32)
                         }
                         .buttonStyle(PlainButtonStyle())
                         
@@ -123,24 +127,35 @@ struct PlayerPanel: View {
                                 .resizable()
                                 .scaledToFit()
                                 .font(.system(size: 16, weight: .ultraLight))
-                                .frame(width: 36, height: 36)
+                                .frame(width: 32, height: 32)
                         }
                         .buttonStyle(PlainButtonStyle())
-                        
-                        Button {
-                            mushafVM.isHidden.toggle()
-                            print("hide tapped:", mushafVM.isHidden)
-                        } label: {
-                            Image(systemName: mushafVM.isHidden ? "eye.slash.circle.fill" : "eye.slash.circle")
-                                .resizable()
-                                .scaledToFit()
-                                .font(.system(size: 16, weight: .ultraLight))
-                                .frame(width: 36, height: 36)
-                        }
-                        .buttonStyle(PlainButtonStyle())
-                        
-                        
+                                                
                     }
+                    
+                    Button {
+                        mushafVM.handleSpeedButton()
+                        print("speed tapped:", mushafVM.speed)
+                    } label: {
+                        Image(systemName: "speedometer")
+                            .resizable()
+                            .scaledToFit()
+                            .font(.system(size: 16, weight: .ultraLight))
+                            .frame(width: 32, height: 32)
+                    }
+                    .buttonStyle(PlainButtonStyle())
+                    
+                    Button {
+                        mushafVM.isHidden.toggle()
+                        print("hide tapped:", mushafVM.isHidden)
+                    } label: {
+                        Image(systemName: mushafVM.isHidden ? "eye.slash.circle.fill" : "eye.slash.circle")
+                            .resizable()
+                            .scaledToFit()
+                            .font(.system(size: 16, weight: .ultraLight))
+                            .frame(width: 32, height: 32)
+                    }
+                    .buttonStyle(PlainButtonStyle())
                 }
             }
             
