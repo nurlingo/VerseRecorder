@@ -40,7 +40,7 @@ public class PrayerViewModel: NSObject, ObservableObject, AVAudioPlayerDelegate,
     @Published var infoMessage = "" {
         didSet {
             let currentMessage = infoMessage
-            DispatchQueue.main.asyncAfter(deadline: .now() + 1.5) {
+            DispatchQueue.main.asyncAfter(deadline: .now() + 2.0) {
                 if self.infoMessage != self.standardMessage,
                    self.infoMessage == currentMessage {
                     self.infoMessage = self.standardMessage

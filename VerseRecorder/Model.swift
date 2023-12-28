@@ -29,7 +29,7 @@ public struct AyahPart: Codable {
         case partNumber = "part_number"
     }
     
-    var id: String {
+    public var id: String {
         let formattedSurahNumber = String(format: "%03d", surahNumber)
         let formattedAyahNumber = String(format: "%03d", ayahNumber)
         return "\(formattedSurahNumber)\(formattedAyahNumber)"

@@ -56,12 +56,12 @@ class Storage: NSObject {
     static let shared = Storage()
     
     func store(_ anyObject: Any, forKey key: String) {
-        UserDefaults.standard.set(anyObject, forKey: key)
-        UserDefaults.standard.synchronize()
+        UserDefaults(suiteName: "group.com.nurios.qaloon")?.set(anyObject, forKey: key)
+        UserDefaults(suiteName: "group.com.nurios.qaloon")?.synchronize()
     }
     
     func retrieve(forKey key: String) -> Any? {
-        if let any = UserDefaults.standard.object(forKey: key) {
+        if let any = UserDefaults(suiteName: "group.com.nurios.qaloon")?.object(forKey: key) {
             return any
         } else {
             return nil
@@ -69,14 +69,14 @@ class Storage: NSObject {
     }
     
     func remove(forKey key: String) {
-        UserDefaults.standard.removeObject(forKey: key)
-        UserDefaults.standard.synchronize()
+        UserDefaults(suiteName: "group.com.nurios.qaloon")?.removeObject(forKey: key)
+        UserDefaults(suiteName: "group.com.nurios.qaloon")?.synchronize()
     }
     
     func getAllItemKeys(withPrefix: String) -> [String] {
-        return Array(UserDefaults.standard.dictionaryRepresentation().keys.filter { (key) -> Bool in
-            return key.contains(withPrefix)
-        })
+        return Array(UserDefaults(suiteName: "group.com.nurios.qaloon")?.dictionaryRepresentation().keys.filter { (key) -> Bool in
+                return key.contains(withPrefix)
+        } ?? [])
     }
     
 }

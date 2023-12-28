@@ -58,6 +58,9 @@ public class RecorderViewModel: PrayerViewModel {
                 setInfoMessage("Recording saved")
 //                uploader.upload(activeRecording)
             }
+        } else if !(Storage.shared.retrieve(forKey: "consent_given") as? Bool ?? false) {
+            stopPlayer()
+            NotificationCenter.default.post(name: Notification.Name("showPersonalization"), object: nil)
         } else {
             stopPlayer()
             startRecording(start: start, end: end)

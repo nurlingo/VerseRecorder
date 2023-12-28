@@ -81,7 +81,7 @@ public class MushafViewModel: PrayerViewModel {
     
     @Published var activeAyah: AyahPart? = nil
     
-    @Published var currentRange = [AyahPart]() {
+    @Published public var currentRange = [AyahPart]() {
         didSet {
             print(currentRange.map({$0.id}))
             UserDefaults.standard.set(currentRange.map({$0.id}), forKey: "currentRangeIds")
@@ -101,7 +101,9 @@ public class MushafViewModel: PrayerViewModel {
                let lastSurahName = SurahNames.juzAmma[last.surahNumber]?.1 {
                 activeAyah = currentRange[0]
                 
-                rangeString = firstSurahName == lastSurahName ? "\(first.surahNumber). \(firstSurahName) \(first.ayahNumber):\(last.ayahNumber)" : "\(first.surahNumber). \(firstSurahName) \(first.ayahNumber) : \(last.surahNumber). \(lastSurahName) \(last.ayahNumber)"
+                let rangeTitle = firstSurahName == lastSurahName ? "\(first.surahNumber). \(firstSurahName) \(first.ayahNumber):\(last.ayahNumber)" : "\(first.surahNumber). \(firstSurahName) \(first.ayahNumber) : \(last.surahNumber). \(lastSurahName) \(last.ayahNumber)"
+                rangeString = rangeTitle
+                setInfoMessage(rangeTitle)
             }
         }
     }
@@ -265,23 +267,21 @@ public class MushafViewModel: PrayerViewModel {
         
     }
     
-    func setRectanglesForCurrentRange() {
-        self.ayahRectangles = []
-        
+    public func setRectanglesForCurrentRange() {
         let lines = currentRange.filter( { $0.pageNumber == pages[currentPageIndex] } ).flatMap( {$0.lines })
-        extractRectanges(from: lines)
-        
+        self.ayahRectangles = extractRectanges(from: lines)
     }
     
     func setRectanglesForCurrentAyah() {
-        self.ayahRectangles = []
-        
         if let activeAyah = activeAyah {
-            extractRectanges(from: activeAyah.lines)
+            self.ayahRectangles = extractRectanges(from: activeAyah.lines)
         }
     }
     
-    private func extractRectanges(from lines: [[WordCoordinate]]) {
+    private func extractRectanges(from lines: [[WordCoordinate]]) -> [RectangleData] {
+        
+        var rectangles = [RectangleData]()
+        
         for line in lines {
             
             if let lastPoint = line.last,
@@ -290,9 +290,11 @@ public class MushafViewModel: PrayerViewModel {
                 let y = min(firstPoint.y1,firstPoint.y2)
                 let height = abs(firstPoint.y1 - firstPoint.y2)
                 let width = abs(firstPoint.x-lastPoint.x)
-                ayahRectangles.append(RectangleData(rect:CGRect(x: x, y: y, width: width, height: height)))
+                rectangles.append(RectangleData(rect:CGRect(x: x, y: y, width: width, height: height)))
             }
         }
+        
+        return rectangles
     }
     
     private func goToNextRange(){
