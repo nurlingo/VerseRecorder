@@ -26,9 +26,13 @@ var globalLanguage: Language {
     }
     
     /// if not set the app language according to the device language
-    let langIndex: Int = Locale.current.languageCode == "ru" ? 1 : 0
-    return Language(rawValue: langIndex) ?? .english
+    /// if not set the app language according to the device language
+    if let preferredLang = Locale.preferredLanguages.first,
+       preferredLang.hasPrefix("ru") {
+        return .russian
+    }
     
+    return .english
 }
 
 var isRussian: Bool {
