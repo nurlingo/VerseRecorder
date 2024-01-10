@@ -113,17 +113,13 @@ public struct SurahData: Codable {
 }
 
 // MARK: - Surah
-public struct Surah: Codable, Identifiable {
+public struct Surah: Range, Codable, Identifiable, Hashable {
     
     public var title: String {
         englishName
     }
     
-    public var isShown: Int {
-        1
-    }
-    
-    public var atoms: [RecorderItem] {
+    public var tracks: [Track] {
         ayahs
     }
     
@@ -135,10 +131,18 @@ public struct Surah: Codable, Identifiable {
     public var id: String {
         String(number)
     }
+    
+    public func hash(into hasher: inout Hasher) {
+        hasher.combine(number)
+    }
+    
+    public static func == (lhs: Surah, rhs: Surah) -> Bool {
+        lhs.number == rhs.number
+    }
 }
 
 // MARK: - Ayah
-struct Ayah: Codable, RecorderItem {
+struct Ayah: Codable, Track {
     var id: String {
         String(number)
     }

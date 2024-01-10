@@ -13,49 +13,75 @@ import MediaPlayer
 public class RecorderViewModel: NSObject, ObservableObject, AVAudioPlayerDelegate, AVAudioRecorderDelegate {
     
     public var clientStorage: ClientStorage
+    @Published var rangeRecording: RangeRecording
+    
+    public let tracks: [Track]
+    public let title: String
+    let isAnOldRecording: Bool
     
     @Published var activeItemId: String = ""
     @Published var progress: Float = 0
     
-    @Published var speed: Float = 1.0 {
-        didSet {
-            UserDefaults.standard.set(speed, forKey: "playSpeed")
-            UserDefaults.standard.synchronize()
-            
-            if let player = player, player.isPlaying {
-                
-                player.stop()
-                
-                /// if volume is ON, limit playspeed to 1.75
-//                let isVolumeOn = AVAudioSession.sharedInstance().outputVolume > 0
-                player.rate = speed // isVolumeOn ? min(speed, 1.75) : speed
-                
-                player.prepareToPlay()
-                player.play()
-            }
-        }
-    }
-    let step: Float = 0.25
-    let range: ClosedRange<Float> = 1.00...2.00
-        
     @Published var isPlaying: Bool = false
     @Published var isRecording: Bool = false
+    @Published var isUploading: Bool = false
     @Published var isShowingTransliteration = false
 
-    private var recordingStorage = RecordingStorage.shared
     lazy var uploader = UploaderService(credentials: credentials, clientStorage: clientStorage)
     
-    public var audioId: String = ""
-    public var tracks: [String] = []
     private var visibleRows: [String:Bool] = [:]
+    
+    var hasTrackRecordingsToUpload: Bool {
+        rangeRecording.hasTrackRecordingsToUpload()
+    }
+    
+    public init(range: Range, clientStorage: ClientStorage, recording: RangeRecording? = nil) {
+        self.clientStorage = clientStorage
+        
+        if let recording = recording {
+            self.rangeRecording = recording
+            self.activeItemId = range.tracks.first?.id ?? ""
+            self.isAnOldRecording = true
+        } else {
+            let rangeRecording = RangeRecording(audioId: range.id)
+            self.rangeRecording = rangeRecording
+            self.isAnOldRecording = false
+        }
+        
+        
+        self.tracks = range.tracks
+        self.title = range.title
+        super.init()
+        setupPlayer()
+        registerForInterruptions()
+        
+        let notificationCenter = NotificationCenter.default
+        notificationCenter.addObserver(self,
+                                       selector: #selector(goToBackground),
+                                       name: UIApplication.didEnterBackgroundNotification,
+                                       object: nil)
+        notificationCenter.addObserver(self,
+                                       selector: #selector(returnToForeground),
+                                       name: UIApplication.didBecomeActiveNotification,
+                                       object: nil)
+        
+    }
+    
+    deinit {
+        resetPlayer()
+        progressMode = .durationBased
+        let notificationCenter = NotificationCenter.default
+        notificationCenter.removeObserver(self, name: AVAudioSession.interruptionNotification, object: nil)
+        updater = nil
+    }
     
     public func setVisibility(for item: String, isVisible: Bool) {
         visibleRows[item] = isVisible
     }
     
-    public func getVisibility(for item: String) -> Bool {
+    public func getVisibility(for itemId: String) -> Bool {
         
-        guard let index = tracks.firstIndex(of: item),
+        guard let index = tracks.firstIndex(where: {$0.id == itemId }),
               index > 0, /// cannot be first
               index < tracks.count - 1 /// cannot be last
         else {
@@ -63,27 +89,17 @@ public class RecorderViewModel: NSObject, ObservableObject, AVAudioPlayerDelegat
         }
             
         /// FIXME: actually depends on direction
-        return visibleRows[tracks[index+1]] ?? false && visibleRows[tracks[index-1]] ?? false
+        return visibleRows[tracks[index+1].id] ?? false && visibleRows[tracks[index-1].id] ?? false
         
     }
     
     var progressMode: ProgressMode = .durationBased
     public var currentlyActiveIndex: Int {
-        if let index = tracks.firstIndex(of: activeItemId) {
+        if let index = tracks.firstIndex(where: {$0.id == activeItemId}) {
             return index
         } else {
             return -1
         }
-    }
-    
-    var isWaitingForUpload: Bool {
-        for track in tracks {
-            if recordingExists(track) && !recordingUploaded(track) {
-                return true
-            }
-        }
-        
-        return false
     }
     
     private var audioRecorder: AVAudioRecorder?
@@ -120,9 +136,9 @@ public class RecorderViewModel: NSObject, ObservableObject, AVAudioPlayerDelegat
         } else if isPlaying {
             playNextItem()
         } else if currentlyActiveIndex < tracks.count - 1 { /// moreItemsAhead
-            self.activeItemId = tracks[currentlyActiveIndex+1]
+            self.activeItemId = tracks[currentlyActiveIndex+1].id
         } else {
-            self.activeItemId = tracks.first ?? ""
+            self.activeItemId = tracks.first?.id ?? ""
         }
     }
     
@@ -133,15 +149,15 @@ public class RecorderViewModel: NSObject, ObservableObject, AVAudioPlayerDelegat
         } else if isPlaying {
             playPreviousItem()
         } else if currentlyActiveIndex > 0 {
-            self.activeItemId = tracks[currentlyActiveIndex-1]
+            self.activeItemId = tracks[currentlyActiveIndex-1].id
         }
         
     }
 
     public func handleRecordButton() {
         if isRecording {
-            finishRecording()
-            activeItemId = tracks.first ?? ""
+            resetRecorder()
+            activeItemId = tracks.first?.id ?? ""
         } else {
             stopPlayer()
             startRecording()
@@ -150,28 +166,24 @@ public class RecorderViewModel: NSObject, ObservableObject, AVAudioPlayerDelegat
     
     public func handleUploadButton() {
         if isRecording {
-            finishRecording()
+            resetRecorder()
         }
         
         if isPlaying {
             pausePlayer()
         }
         
-        uploader.uploadNewlyRecordedAudios(tracks, for: audioId)
-        var count = tracks.count + 3
-        Timer.scheduledTimer(withTimeInterval: 2.0, repeats: true) { timer in
-            count -= 1
-//            print(count)
+        isUploading = true
+        uploader.uploadRangeRecording(rangeRecording, actionAfterUploadingEachTrack: {
             self.activeItemId = self.activeItemId
-            if count <= 0 {
-                timer.invalidate()
-            }
-        }
+        }, completion: {
+            self.isUploading = false
+        })
     }
     
     public func handleDeleteAction(shallDeleteAll: Bool = false) {
         if isRecording {
-            finishRecording()
+            resetRecorder()
         }
         
         if isPlaying {
@@ -179,23 +191,22 @@ public class RecorderViewModel: NSObject, ObservableObject, AVAudioPlayerDelegat
         }
         
         if shallDeleteAll {
-            for track in tracks {
-                recordingStorage.deleteRecording(track)
+            for track in rangeRecording.tracks.values {
+                rangeRecording.deleteTrackRecording(track.id)
             }
         } else {
-            recordingStorage.deleteRecording(activeItemId)
+            rangeRecording.deleteTrackRecording(activeItemId)
         }
         
         self.activeItemId = self.activeItemId
-        
     }
     
     public func handleRowTap(at rowId: String) {
         self.activeItemId = rowId
-        if isPlaying && recordingStorage.doesRecordingExist(activeItemId) {
+        if isPlaying && recordingExists(activeItemId) {
             playFromBundle(itemId: activeItemId)
-        } else if isRecording && recordingStorage.doesRecordingExist(activeItemId) {
-            finishRecording()
+        } else if isRecording && recordingExists(activeItemId) {
+            resetRecorder()
             startRecording()
         } else {
             resetRecorder()
@@ -204,11 +215,11 @@ public class RecorderViewModel: NSObject, ObservableObject, AVAudioPlayerDelegat
     }
     
     public func recordingExists(_ trackId: String) -> Bool {
-        recordingStorage.doesRecordingExist(trackId)
+        rangeRecording.trackRecordingExists(trackId)
     }
     
     public func recordingUploaded(_ trackId: String) -> Bool {
-        recordingStorage.didUploadRecording(trackId)
+        rangeRecording.trackRecordingUploaded(trackId)
     }
     
     public func resetPlayer() {
@@ -226,12 +237,12 @@ public class RecorderViewModel: NSObject, ObservableObject, AVAudioPlayerDelegat
     private func startRecording() {
         
         if activeItemId.isEmpty, let first = tracks.first  {
-            activeItemId = first
+            activeItemId = first.id
         }
         
         stopPlayer()
         
-        let audioFilename = recordingStorage.getPath(for: activeItemId)
+        let audioFilename = rangeRecording.getPathForTrack(activeItemId)
 
         let settings = [
             AVFormatIDKey: Int(kAudioFormatMPEG4AAC),
@@ -247,63 +258,22 @@ public class RecorderViewModel: NSObject, ObservableObject, AVAudioPlayerDelegat
 
             print("recorded audio:", audioFilename)
             isRecording = true
+            rangeRecording.addTrack(activeItemId)
         } catch {
             print(#file, #function, #line, #column, "recording failed:", error.localizedDescription)
         }
     }
     
-    private func finishRecording() {
-        recordingStorage.registerRecordingDate(activeItemId)
-        saveRecordingProgress()
-        resetRecorder()
-    }
-    
-    private func saveRecordingProgress() {
-        var recorded = 0
-        for track in tracks {
-            if recordingStorage.doesRecordingExist(track) {
-                recorded += 1
-            }
-        }
-        clientStorage.saveRecordProgress(audioId, progress: Double(recorded)/Double(tracks.count))
-    }
-    
-    public init(clientStorage: ClientStorage) {
-        self.clientStorage = clientStorage
-        super.init()
-        setupPlayer()
-        registerForInterruptions()
-        
-        let notificationCenter = NotificationCenter.default
-        notificationCenter.addObserver(self,
-                                       selector: #selector(goToBackground),
-                                       name: UIApplication.didEnterBackgroundNotification,
-                                       object: nil)
-        notificationCenter.addObserver(self,
-                                       selector: #selector(returnToForeground),
-                                       name: UIApplication.didBecomeActiveNotification,
-                                       object: nil)
-        
-    }
-    
-    deinit {
-        resetPlayer()
-        progressMode = .durationBased
-        let notificationCenter = NotificationCenter.default
-        notificationCenter.removeObserver(self, name: AVAudioSession.interruptionNotification, object: nil)
-        updater = nil
-    }
-    
     private func playFromBundle(itemId: String) {
         
         if itemId.isEmpty, let first = tracks.first  {
-            activeItemId = first
+            activeItemId = first.id
         } else {
             activeItemId = itemId
         }
         
         
-        if recordingStorage.recordingExists(activeItemId) {
+        if recordingExists(activeItemId) {
             print("FILE AVAILABLE")
             self.playRecroding(activeItemId)
         } else {
@@ -315,7 +285,7 @@ public class RecorderViewModel: NSObject, ObservableObject, AVAudioPlayerDelegat
     
     private func playRecroding(_ trackId: String) {
         
-        let url = recordingStorage.getPath(for: trackId)
+        let url = rangeRecording.getPathForTrack(trackId)
 
         player = nil
         removeDurationTracking()
@@ -331,13 +301,6 @@ public class RecorderViewModel: NSObject, ObservableObject, AVAudioPlayerDelegat
             player = try AVAudioPlayer(contentsOf: url)
             guard let player = player else { return }
             player.delegate = self
-            player.enableRate = true
-            
-            /// if output volume is ON, limit playspeed to 1.75 (specific to namazapp)
-            let isVolumeOn = AVAudioSession.sharedInstance().outputVolume > 0
-            player.rate = isVolumeOn ? min(speed, 1.75) : speed
-            
-            
             player.prepareToPlay()
             player.play()
             DispatchQueue.main.async {
@@ -361,14 +324,14 @@ public class RecorderViewModel: NSObject, ObservableObject, AVAudioPlayerDelegat
     }
     
     private func recordNextItem(){
-        finishRecording()
+        resetRecorder()
         
         if currentlyActiveIndex < tracks.count - 1 {
             /// moreItemsAhead
-            self.activeItemId = tracks[currentlyActiveIndex+1]
+            self.activeItemId = tracks[currentlyActiveIndex+1].id
             startRecording()
         } else {
-            activeItemId = tracks.first ?? ""
+            activeItemId = tracks.first?.id ?? ""
             progress = 0
         }
     }
@@ -376,14 +339,14 @@ public class RecorderViewModel: NSObject, ObservableObject, AVAudioPlayerDelegat
     private func playNextItem(){
         
         if currentlyActiveIndex < tracks.count - 1 { /// moreItemsAhead
-            self.playFromBundle(itemId: tracks[currentlyActiveIndex+1])
+            self.playFromBundle(itemId: tracks[currentlyActiveIndex+1].id)
         } else {
             
             //            Analytics.shared.logEvent("Audio Completed", properties: [
             //                "onRepeat": false,
             //                "audio": audio.id
             //            ])
-            activeItemId = tracks.first ?? ""
+            activeItemId = tracks.first?.id ?? ""
             isPlaying = false
             progress = 0
             player?.stop()
@@ -393,17 +356,17 @@ public class RecorderViewModel: NSObject, ObservableObject, AVAudioPlayerDelegat
     
     private func recordPreviousItem() {
         
-        finishRecording()
+        resetRecorder()
         
         if currentlyActiveIndex > 0 {
-            activeItemId = tracks[currentlyActiveIndex-1]
+            activeItemId = tracks[currentlyActiveIndex-1].id
             startRecording()
         }
     }
     
     private func playPreviousItem() {
         if currentlyActiveIndex > 0 {
-            let previousItemId = tracks[currentlyActiveIndex-1]
+            let previousItemId = tracks[currentlyActiveIndex-1].id
             playFromBundle(itemId: previousItemId)
         } else {
             playFromBundle(itemId: "")
@@ -456,10 +419,6 @@ public class RecorderViewModel: NSObject, ObservableObject, AVAudioPlayerDelegat
 extension RecorderViewModel {
     
     private func setupPlayer() {
-        if let actualSpeedValue = UserDefaults.standard.object(forKey: "playSpeed") as? Float {
-            self.speed = actualSpeedValue
-        }
-        
         do {
             // play sound even on silent
             if #available(iOS 10.0, *) {

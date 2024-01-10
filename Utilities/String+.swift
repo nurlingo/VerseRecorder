@@ -75,9 +75,13 @@ extension String {
     
     public func getEnglish() -> String {
         let en = [
+            "Surahs": "Surahs (Juz 30)",
+            "My recordings": "My recordings",
+            "Pick a surah to record": "Pick a surah to record",
+            "recording": "recording",
             "Upload Audios": "Upload recorded audios?",
             "Upload": "Send recordings to the developer",
-            "Upload Explanation": "Upload recorded audios: We'll use it to train a model that will assess our users' recitation automatically. InshaAllah if this endeavour is successful, we'll all get rewarded by Allah.",
+            "Upload Explanation": "We'll ask volunteers to check your recitation, and can display the results once they are ready. Important: We'll use your audios to train AI and for research. InshaAllah, this will become something beneficial in the future.",
             "Delete Audio": "Delete?",
             "Delete Current": "Delete current",
             "Delete All": "Delete All",
@@ -90,9 +94,13 @@ extension String {
     public func getRussian() -> String {
         
         let ru = [
+            "Surahs": "Суры (30й джуз)",
+            "My recordings": "Мои записи",
+            "Pick a surah to record": "Выберите суру для записи",
+            "recording": "запись",
             "Upload Audios": "Отправить записанные аудио?",
             "Upload": "Поделиться записями с разработчиком",
-            "Upload Explanation": "Мы используем записи для обучения модели искусственного интеллекта, чтобы в будущем уметь оценить правильности чтения автоматически. Если у нас получится внедрить эту модель и она будет полезна людям, то иншаАллаh вы получите награду от Аллаhа за участие в благом деле.",
+            "Upload Explanation": "Ваше чтение проверят волонтеры на наличие ошибок. Как будет готов результат, отобразим его в этом же разделе. Важно: мы используем аудиозаписи для обучения ИИ и исследований. ИншаАллах, в этом будет польза для мусульман.",
             "Delete Audio": "Удалить?",
             "Delete Current": "Удалить выбранную",
             "Delete All": "Удалить все",

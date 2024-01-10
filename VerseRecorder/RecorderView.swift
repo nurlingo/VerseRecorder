@@ -11,8 +11,6 @@ import AVFoundation
 public struct RecorderView: View {
     
     @Environment(\.colorScheme) var colorScheme
-    let audioId: String
-    let audioTracks: [RecorderItem]
     
     @ObservedObject private var recorderVM: RecorderViewModel
     
@@ -21,50 +19,22 @@ public struct RecorderView: View {
         case recorder
     }
     
-    public init(audioId: String, audioTracks: [RecorderItem], recorderVM: RecorderViewModel) {
-        self.audioId = audioId
-        self.audioTracks = audioTracks
-        self.recorderVM = recorderVM
+    public init(range: Range, clientStorage: ClientStorage, recording: RangeRecording? = nil) {
+        self.recorderVM = RecorderViewModel(range: range, clientStorage: clientStorage, recording: recording)
     }
 
     @State private var didLoad = false
     
     public var body: some View {
         
-        
-        
-        if #available(iOS 16.0, *) {
-            
-            NavigationStack {
-                RecorderListView(audioId: audioId, audioTracks: audioTracks, recorderVM: recorderVM)
-            }
-            .toolbar {
-                Button {
-                    recorderVM.isShowingTransliteration.toggle()
-                    print("Show text tapped")
-                } label: {
-                    Image(systemName:"text.redaction")
-                        .foregroundColor(recorderVM.isShowingTransliteration ? Color(uiColor: UIColor.lightGray.withAlphaComponent(0.5)) : Color.primary)
-                }
-            }
-        } else {
-            RecorderListView(audioId: audioId, audioTracks: audioTracks, recorderVM: recorderVM)
-        }
+        RecorderListView(recorderVM: recorderVM)
+            .navigationTitle(recorderVM.title + " (" + "recording".localized() + ")")
         
         ProgressView(value: (recorderVM.progress), total: 1)
             .tint(Color.primary)
         
         RecorderControlPanel(recorderVM: recorderVM)
             .frame(height: 50)
-            .onAppear {
-                if didLoad == false {
-                    didLoad = true
-                    recorderVM.audioId = audioId
-                    recorderVM.tracks = audioTracks.map { $0.id }
-                    recorderVM.activeItemId = recorderVM.tracks.first ?? ""
-                }
-                
-            }
             .onDisappear {
                 recorderVM.resetPlayer()
                 recorderVM.resetRecorder()
@@ -102,16 +72,13 @@ public struct RecorderView: View {
 @available(iOS 15.0, *)
 struct RecorderListView: View {
     
-    let audioId: String
-    let audioTracks: [RecorderItem]
-    
     @StateObject private var fontVM = FontViewModel()
     @StateObject var recorderVM: RecorderViewModel
     
     var body: some View {
         ScrollViewReader { proxy in
             List {
-                if audioId != "001" {
+                if recorderVM.rangeRecording.audioId != "001" {
                     Text("بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ")
                         .frame(maxWidth: .infinity, alignment: Alignment.topLeading)
                         .font(.uthmanicTahaScript(size: CGFloat(fontVM.fontSize)))
@@ -123,7 +90,7 @@ struct RecorderListView: View {
                         .fixedSize(horizontal: false, vertical: true)
                 }
                     
-                ForEach(audioTracks, id: \.id ) { track in
+                ForEach(recorderVM.tracks, id: \.id ) { track in
                     HStack{
                         Spacer().frame(width:1)
                         if recorderVM.activeItemId == track.id {
@@ -159,7 +126,7 @@ struct RecorderListView: View {
                                     }
                                 }
 
-                                Text(audioId != "1" ? track.text.deletingPrefix("بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ").deletingPrefix("بِّسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ") : track.text)
+                                Text(recorderVM.rangeRecording.audioId != "1" ? track.text.deletingPrefix("بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ").deletingPrefix("بِّسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ") : track.text)
                                     .frame(maxWidth: .infinity, alignment: Alignment.topLeading)
                                     .font(.uthmanicTahaScript(size: CGFloat(fontVM.fontSize)))
                                     .minimumScaleFactor(0.01)
@@ -225,6 +192,22 @@ struct RecorderListView: View {
     
 }
 
+import SwiftUI
+
+@available(iOS 13.0.0, *)
+struct PanelButton: View {
+    
+    let imageName: String
+    let height: CGFloat
+    
+    var body: some View {
+        Image(systemName: imageName)
+            .resizable()
+            .scaledToFit()
+            .font(.system(size: 16, weight: .light))
+            .frame(width: 40, height: height)
+    }
+}
 
 @available(iOS 15.0, *)
 struct RecorderControlPanel: View {
@@ -241,8 +224,8 @@ struct RecorderControlPanel: View {
                 HStack{
                     
                     if !recorderVM.isRecording,
-                       recorderVM.recordingExists(recorderVM.activeItemId) {
-                        
+                       recorderVM.recordingExists(recorderVM.activeItemId),
+                       !recorderVM.isAnOldRecording {
                         
                         Button {
                             print("delete")
@@ -263,16 +246,19 @@ struct RecorderControlPanel: View {
                         .buttonStyle(PlainButtonStyle())
                         .confirmationDialog("Delete Audio".localized(),
                                             isPresented: $isConfirmingDelete) {
-                            Button("Delete Current".localized()) {
-                                recorderVM.handleDeleteAction()
-                            }
                             
                             Button("Delete All".localized(), role: .destructive) {
                                 recorderVM.handleDeleteAction(shallDeleteAll: true)
                             }
+                            
+                            Button("Delete Current".localized()) {
+                                recorderVM.handleDeleteAction()
+                            }
                         } message: {
                             Text("Delete Explanation".localized())
                         }
+                        
+                       
                         
                     } else {
                         Spacer().frame(width: geo.size.height * 0.8)
@@ -284,7 +270,7 @@ struct RecorderControlPanel: View {
                         recorderVM.handlePreviousButton()
                         print("backward tapped!")
                     } label: {
-                        ControlButton(imageName: "backward.fill", height: geo.size.height * 0.4)
+                        PanelButton(imageName: "backward.fill", height: geo.size.height * 0.4)
                         
                     }
                     .buttonStyle(PlainButtonStyle())
@@ -296,7 +282,7 @@ struct RecorderControlPanel: View {
                         Button {
                             recorderVM.handlePlayButton()
                         } label: {
-                            ControlButton(imageName: recorderVM.isPlaying ? "pause.circle" : "play.circle", height: geo.size.height * 0.8)
+                            PanelButton(imageName: recorderVM.isPlaying ? "pause.circle" : "play.circle", height: geo.size.height * 0.8)
                         }
                         .buttonStyle(PlainButtonStyle())
                     } else {
@@ -305,11 +291,11 @@ struct RecorderControlPanel: View {
                             recorderVM.handleRecordButton()
                         } label: {
                             if recorderVM.isRecording {
-                                ControlButton(imageName: "stop.circle", height: geo.size.height * 0.8)
+                                PanelButton(imageName: "stop.circle", height: geo.size.height * 0.8)
                                     .symbolRenderingMode(.palette)
                                     .foregroundStyle(.primary, .red)
                             } else {
-                                ControlButton(imageName: "record.circle", height: geo.size.height * 0.8)
+                                PanelButton(imageName: "record.circle", height: geo.size.height * 0.8)
                                     .symbolRenderingMode(.palette)
                                     .foregroundStyle(.red, .primary)
                             }
@@ -325,14 +311,15 @@ struct RecorderControlPanel: View {
                         recorderVM.handleNextButton()
                         print("forward tapped!")
                     } label: {
-                        ControlButton(imageName: "forward.fill", height: geo.size.height * 0.4)
+                        PanelButton(imageName: "forward.fill", height: geo.size.height * 0.4)
                     }
                     .buttonStyle(PlainButtonStyle())
                     
                     Spacer()
                     
                     if !recorderVM.isRecording,
-                       recorderVM.isWaitingForUpload {
+                       !recorderVM.isUploading,
+                       recorderVM.hasTrackRecordingsToUpload {
                         Button {
                             print("upload")
                             isConfirmingUpload = true

@@ -142,115 +142,117 @@ class UploaderService {
             
             let jsonData = try JSONSerialization.data(withJSONObject: json, options: .prettyPrinted)
             let jsonString = String(data: jsonData, encoding: String.Encoding.ascii)!
-//            print (jsonString)
+//            print(#file, #function, #line, jsonString)
 
-            
             request.httpBody = jsonData
             
             let (data, response) = try await URLSession.shared.data(for: request)
             
-            if let string = String(data: data, encoding: .utf8) {
-//                print(string)
+            if let stringData = String(data: data, encoding: .utf8) {
+//                print(#file, #function, stringData)
             }
             
             let dataDict = try JSONDecoder().decode([String:String?].self, from: data)
             
             if let fetchedReciterId = dataDict["client_id"] as? String {
                 self.clientStorage.saveReciterId(fetchedReciterId)
-//                print(fetchedReciterId)
+//                print(#file, #function,fetchedReciterId)
             }
             
-//            print(response)
+//            print(#file, #function, response)
             
-            // handle the result
         } catch {
             print(#file, #function, #line, #column,  "updateReciterInfo failed")
         }
     }
     
     
-    internal func uploadNewlyRecordedAudios(_ tracks: [String], for audioId: String? = nil) {
+    internal func uploadRangeRecording(_ rangeRecording: RangeRecording, actionAfterUploadingEachTrack: (() -> Void)? = nil, completion: (() -> Void)? = nil) {
+        
+        struct ResponseData: Codable {
+            let fileName: String
+
+            enum CodingKeys: String, CodingKey {
+                case fileName = "file_name"
+            }
+        }
         
         Task {
             do {
                 await self.getToken()
                 await self.getUserID()
                 await self.updateReciterInfo()
-                
-                var uploaded = 0
-                
-                for track in tracks {
+                                
+                for track in rangeRecording.tracks.values.sorted(by: {$0.id < $1.id}) {
                     
-                    guard recordingStorage.doesRecordingExist(track) else {continue}
+                    guard rangeRecording.trackRecordingExists(track.id),
+                          track.remoteId == nil else {continue}
                     
-                    uploaded += 1
+                    let trackFileName = "\(rangeRecording.id.uuidString)-\(track.id)"
+                    
+                    print("uploading \(track.id)")
+                    
+                    let surahNumber = track.id.prefix(track.id.count-3)
+                    let ayahNumber = track.id.suffix(3)
+                    print(surahNumber)
+                    print(ayahNumber)
+                    
+                    let url = URL(string: "\(creds.remoteAPI)audios?client_id=\(clientStorage.getReciterId())&surra_number=\(surahNumber)&aya_number=\(ayahNumber)")!
+                    var request = URLRequest(url: url)
+                    request.httpMethod = "POST"
+                    request.addValue("application/json", forHTTPHeaderField: "Accept")
+                    request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+                    
+                    // generate boundary string using a unique per-app string
+                    let boundary = UUID().uuidString
+                    request.setValue("multipart/form-data; boundary=\(boundary)", forHTTPHeaderField: "Content-Type")
+                    
+                    let path = rangeRecording.getPathForTrack(track.id)
+                        let audioData = try Data(contentsOf: path)
+                        
+                        var data = Data()
+                        
+                    // Add the image data to the raw http request data
+                    data.append("\r\n--\(boundary)\r\n".data(using: .utf8)!)
+                    data.append("Content-Disposition: form-data; name=\"audio_file\"; filename=\"\(trackFileName).m4a\"\r\n".data(using: .utf8)!)
+                    data.append("Content-Type: audio/m4a\r\n\r\n".data(using: .utf8)!)
+                    data.append(audioData)
+                    data.append("\r\n--\(boundary)--\r\n".data(using: .utf8)!)
+                    
+                    let (responseData, response) = try await URLSession.shared.upload(for: request, from: data)
 
-                    if !recordingStorage.didUploadRecording(track) {
-                        await self.upload(track)
+                    // Check if the response is an HTTPURLResponse and the status code is in the 200 range
+                    if let httpResponse = response as? HTTPURLResponse, (200...299).contains(httpResponse.statusCode) {
+
+                        do {
+                            // Decode the JSON data
+                            let decoder = JSONDecoder()
+                            let decodedData = try decoder.decode(ResponseData.self, from: responseData)
+
+                            // Extract the file name
+                            let fileName = decodedData.fileName
+                            print("File name is: \(fileName)")
+                            rangeRecording.tracks[track.id] = track.updatedRecording(with: fileName)
+                            actionAfterUploadingEachTrack?()
+                        } catch {
+                            print("Error decoding JSON: \(error)")
+                        }
+                    } else {
+                        // Handle unexpected response
+                        print("Unexpected response or status code")
                     }
+                    
                 }
                 
                 print("upload complete")
-                
-                if let audioId = audioId {
-                    clientStorage.saveUploadProgress(audioId, progress: Double(uploaded)/Double(tracks.count))
-                }
-                
+                completion?()
                 
             } catch {
                 //FIXME: add catch exceptions
+                completion?()
                 print(#file, #function, #line, #column, error.localizedDescription)
             }
         }
         
     }
-    
-    private func upload(_ trackId: String) async {
-        
-        // FIXME: this is not reusable actually.
-        
-        print("uploading \(trackId)")
-        
-        let surahNumber = trackId.prefix(trackId.count-3)
-        let ayahNumber = trackId.suffix(3)
-        print(surahNumber)
-        print(ayahNumber)
-        
-        let url = URL(string: "\(creds.remoteAPI)audios?client_id=\(clientStorage.getReciterId())&surra_number=\(surahNumber)&aya_number=\(ayahNumber)")!
-        var request = URLRequest(url: url)
-        request.httpMethod = "POST"
-        request.addValue("application/json", forHTTPHeaderField: "Accept")
-        request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
-        
-        // generate boundary string using a unique per-app string
-        let boundary = UUID().uuidString
-        request.setValue("multipart/form-data; boundary=\(boundary)", forHTTPHeaderField: "Content-Type")
-        
-        do {
-            let path = recordingStorage.getPath(for: trackId)
-            let audioData = try Data(contentsOf: path)
-            
-            var data = Data()
-            
-            // Add the image data to the raw http request data
-            data.append("\r\n--\(boundary)\r\n".data(using: .utf8)!)
-            data.append("Content-Disposition: form-data; name=\"audio_file\"; filename=\"recording-\(trackId).m4a\"\r\n".data(using: .utf8)!)
-            data.append("Content-Type: audio/m4a\r\n\r\n".data(using: .utf8)!)
-            data.append(audioData)
-            data.append("\r\n--\(boundary)--\r\n".data(using: .utf8)!)
-            
-            let (responseData, response) = try await URLSession.shared.upload(for: request, from: data)
-            
-            if let string = String(data: responseData, encoding: .utf8) {
-//                print(string)
-            }
-        
-//            print(response)
-            recordingStorage.registerUploadingDate(trackId)
-            
-        } catch {
-            print(#file, #function, #line, #column, error.localizedDescription)
-        }
-    }
-    
 }
