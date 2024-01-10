@@ -13,6 +13,7 @@ import MediaPlayer
 public class RecorderViewModel: NSObject, ObservableObject, AVAudioPlayerDelegate, AVAudioRecorderDelegate {
     
     public var clientStorage: ClientStorage
+    let range: Range
     @Published var rangeRecording: RangeRecording
     
     public let tracks: [Track]
@@ -36,6 +37,7 @@ public class RecorderViewModel: NSObject, ObservableObject, AVAudioPlayerDelegat
     }
     
     public init(range: Range, clientStorage: ClientStorage, recording: RangeRecording? = nil) {
+        self.range = range
         self.clientStorage = clientStorage
         
         if let recording = recording {

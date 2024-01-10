@@ -29,8 +29,6 @@ public protocol Track {
     var id: String {get}
     var text: String {get}
     var meaning: String {get}
-    var commentary: String {get}
-    var image: String {get}
 }
 
 public class RangeRecording: Codable, Identifiable {

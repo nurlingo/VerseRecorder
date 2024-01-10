@@ -71,7 +71,7 @@ public struct SurahsReference: Codable, Identifiable {
     let revelationType: RevelationType
     
     public var id: String {
-        String(number)
+        String(format: "%03d", number)
     }
 }
 
@@ -129,7 +129,7 @@ public struct Surah: Range, Codable, Identifiable, Hashable {
     var ayahs: [Ayah]
     
     public var id: String {
-        String(number)
+        String(format: "%03d", number)
     }
     
     public func hash(into hasher: inout Hasher) {
@@ -144,27 +144,15 @@ public struct Surah: Range, Codable, Identifiable, Hashable {
 // MARK: - Ayah
 struct Ayah: Codable, Track {
     var id: String {
-        String(number)
+        return String(format: "%03d", ContentStorage.shared.ayahToSurah[number] ?? 0) + String(format: "%03d", numberInSurah)
     }
     
     var meaning: String {
-        if let enMeaning = enMeaning {
-            return "\(numberInSurah). \(enMeaning)"
-        } else {
-            return ""
-        }
+        isRussian ? "\(numberInSurah). \(ruMeaning ?? "")" : "\(numberInSurah). \(enMeaning  ?? "")"
     }
     
     var enMeaning: String?
     var ruMeaning: String?
-    
-    var commentary: String {
-        ""
-    }
-    
-    var image: String {
-        ""
-    }
     
     let number: Int
     let text: String

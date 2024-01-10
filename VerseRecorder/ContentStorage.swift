@@ -7,13 +7,13 @@
 
 import Foundation
 
-@available(iOS 15.0.0, *)
 public class ContentStorage: NSObject {
     
     public static let shared = ContentStorage()
     public var surahs: [String:Surah] = [:]
     var enSurahs: [String:Surah] = [:]
     var ruSurahs: [String:Surah] = [:]
+    var ayahToSurah: [Int: Int] = [:]
     
     var mushaf: Mushaf?
     var enMushaf: Mushaf?
@@ -23,14 +23,18 @@ public class ContentStorage: NSObject {
         super.init()        
     }
     
+    @available(iOS 15.0.0, *)
     public func loadMasahif() async throws {
         do {
             self.mushaf = try await ContentStorage.shared.fetchQuranEdition(edition: "quran-simple-enhanced")
             self.ruMushaf = try await ContentStorage.shared.fetchQuranEdition(edition: "ru.kuliev")
             self.enMushaf = try await ContentStorage.shared.fetchQuranEdition(edition: "en.sahih")
             
-            self.enMushaf?.data.surahs.forEach({
-                self.enSurahs[$0.id] = $0
+            self.enMushaf?.data.surahs.forEach({ surah in
+                self.enSurahs[surah.id] = surah
+                surah.ayahs.forEach { ayah in
+                    ayahToSurah[ayah.number] = surah.number
+                }
             })
             
             self.ruMushaf?.data.surahs.forEach({
@@ -40,10 +44,13 @@ public class ContentStorage: NSObject {
             self.mushaf?.data.surahs.forEach({
                 var surah = $0
                 for i in 0..<surah.ayahs.count {
-                    guard let enMeaning = self.enMushaf?.data.surahs[$0.number-1].ayahs[i].text else {
-                        break
+                    if let enMeaning = self.enMushaf?.data.surahs[$0.number-1].ayahs[i].text {
+                        surah.ayahs[i].enMeaning = enMeaning
                     }
-                    surah.ayahs[i].enMeaning = enMeaning
+                    
+                    if let ruMeaning = self.ruMushaf?.data.surahs[$0.number-1].ayahs[i].text {
+                        surah.ayahs[i].ruMeaning = ruMeaning
+                    }
                 }
                 
                 self.surahs[$0.id] = surah

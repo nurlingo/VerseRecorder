@@ -78,7 +78,7 @@ struct RecorderListView: View {
     var body: some View {
         ScrollViewReader { proxy in
             List {
-                if recorderVM.rangeRecording.audioId != "001" {
+                if recorderVM.range.id != "001" {
                     Text("بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ")
                         .frame(maxWidth: .infinity, alignment: Alignment.topLeading)
                         .font(.uthmanicTahaScript(size: CGFloat(fontVM.fontSize)))
@@ -105,7 +105,7 @@ struct RecorderListView: View {
                             Spacer().frame(height:2)
                             
                             HStack {
-
+                                
                                 VStack {
                                     if recorderVM.recordingExists(track.id) {
                                         Image(systemName: "recordingtape.circle")
@@ -125,8 +125,8 @@ struct RecorderListView: View {
                                             .frame(width:16,height:16)
                                     }
                                 }
-
-                                Text(recorderVM.rangeRecording.audioId != "1" ? track.text.deletingPrefix("بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ").deletingPrefix("بِّسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ") : track.text)
+                                
+                                Text(recorderVM.rangeRecording.audioId != "001" ? track.text.deletingPrefix("بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ").deletingPrefix("بِّسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ") : track.text)
                                     .frame(maxWidth: .infinity, alignment: Alignment.topLeading)
                                     .font(.uthmanicTahaScript(size: CGFloat(fontVM.fontSize)))
                                     .minimumScaleFactor(0.01)
@@ -139,19 +139,6 @@ struct RecorderListView: View {
                                         //                            print("disappearing:", atom.id)
                                         recorderVM.setVisibility(for: track.id, isVisible: false)
                                     }
-                            }
-                            
-                            Spacer().frame(height:4)
-
-                            if !track.commentary.isEmpty {
-                                Text(track.commentary)
-                                    .multilineTextAlignment(.leading)
-                                    .frame(maxWidth: .infinity, alignment: .leading)
-                                    .font(Font.system(size: CGFloat(fontVM.fontSize*0.75)))
-                                    .fixedSize(horizontal: false, vertical: true)
-                                    .background(recorderVM.isShowingTransliteration ? Color.clear : Color(uiColor: UIColor.lightGray.withAlphaComponent(0.5)))
-                                    .foregroundColor(recorderVM.isShowingTransliteration ? Color.primary : Color.clear)
-
                             }
 
                             Spacer().frame(height:8)
@@ -343,7 +330,7 @@ struct RecorderControlPanel: View {
                                 recorderVM.handleUploadButton()
                             }
                         } message: {
-                            Text("Upload Explanation".localized())
+                            Text("Upload Audios".localized() + "\n" + "Upload Explanation".localized())
                         }
                     } else {
                         Spacer().frame(width: geo.size.height * 0.8)
