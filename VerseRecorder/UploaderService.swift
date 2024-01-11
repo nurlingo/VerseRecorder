@@ -232,7 +232,7 @@ class UploaderService {
                             // Extract the file name
                             let fileName = decodedData.fileName
                             print("File name is: \(fileName)")
-                            rangeRecording.tracks[track.id] = track.updatedRecording(with: fileName)
+                            rangeRecording.tracks[track.id] = track.updatedRecordingWithRemoteId(fileName)
                             actionAfterUploadingEachTrack?()
                         } catch {
                             print("Error decoding JSON: \(error)")
@@ -253,6 +253,69 @@ class UploaderService {
                 print(#file, #function, #line, #column, error.localizedDescription)
             }
         }
+    }
+    
+    internal func fetchRangeRecordingLabels(_ rangeRecording: RangeRecording, actionAfterEachTrack: (() -> Void)? = nil, completion: (() -> Void)? = nil) {
         
+        struct ResponseData: Codable {
+            let label: String?
+        }
+        
+        Task {
+            do {
+                await self.getToken()
+                                
+                for track in rangeRecording.tracks.values.sorted(by: {$0.id < $1.id}) {
+                    
+                    guard rangeRecording.trackRecordingExists(track.id),
+                          let remoteId = track.remoteId,
+                          track.label == nil,
+                          let url = URL(string: "\(creds.remoteAPI)audios/label?audio_file_name=\(remoteId)") else {continue}
+                    
+                    
+                    var request = URLRequest(url: url)
+                    request.httpMethod = "GET"
+                    request.addValue("application/json", forHTTPHeaderField: "Accept")
+                    request.setValue("Bearer \(token)", forHTTPHeaderField: "Authorization")
+                    
+                    
+                    let (responseData, response) = try await URLSession.shared.data(for: request)
+
+                    // Check if the response is an HTTPURLResponse and the status code is in the 200 range
+                    if let httpResponse = response as? HTTPURLResponse, (200...299).contains(httpResponse.statusCode) {
+
+                        do {
+                            // Decode the JSON data
+                            let decoder = JSONDecoder()
+                            let decodedData = try decoder.decode(ResponseData.self, from: responseData)
+
+                            // Extract the file name
+                            if let label = decodedData.label {
+                                print("\(track.id) label is: \(label)")
+                                rangeRecording.tracks[track.id] = track.updatedRecordingWithLabel(label)
+                                actionAfterEachTrack?()
+                            } else {
+                                print("\(track.id) label is: null")
+                            }
+                            
+                        } catch {
+                            print("Error decoding JSON: \(error)")
+                        }
+                    } else {
+                        // Handle unexpected response
+                        print("Unexpected response or status code")
+                    }
+                    
+                }
+                
+                print("labels check complete")
+                completion?()
+                
+            } catch {
+                //FIXME: add catch exceptions
+                completion?()
+                print(#file, #function, #line, #column, error.localizedDescription)
+            }
+        }
     }
 }

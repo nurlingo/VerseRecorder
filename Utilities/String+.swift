@@ -86,6 +86,14 @@ extension String {
             "Delete Current": "Delete current",
             "Delete All": "Delete All",
             "Delete Explanation": "Do you want to delete the recording?",
+            "correct": "Correct: pronunciation and memorization are acceptable. Please note: we do not assess the tajweed rules.",
+            "in_correct": "Incorrect: pronunciation and/or memorization mistakes were identified by the volunteers.",
+            "not_related_quran": "Not Quran: the recording has something unrelated.",
+            "not_match_aya": "Wrong Ayah: the recording has a different ayah from what it is supposed to be.",
+            "multiple_aya": "Multiple Ayahs: the recording has several ayahs instead of one.",
+            "in_complete": "Incomplete: the recording is missing a part of the ayah",
+            "Feedback explained": "Feedback explaination",
+            "Waiting to be checked": "Waiting to be checked",
         ]
         
         return en[self] ?? self
@@ -105,6 +113,14 @@ extension String {
             "Delete Current": "Удалить выбранную",
             "Delete All": "Удалить все",
             "Delete Explanation": "Вы хотите удалить запись?",
+            "correct": "Правильное чтение: произношение и запоминание на приемлемом уровне. Соответствие правилам таджвида не проверялось.",
+            "in_correct": "Обнаружены ошибки: в произношении и/или запоминании.",
+            "not_related_quran": "Не Коран: запись содержит что-то не из Корана.",
+            "not_match_aya": "Не тот аят: запись содержит другой аят, а не тот, который должен быть.",
+            "multiple_aya": "Несколько аятов: запись содержит несколько аятов вместо одного.",
+            "in_complete": "Неполный аят: в записи отсутствует часть аята.",
+            "Feedback explained": "Пояснение к записи",
+            "Waiting to be checked": "Ждет проверки",
         ]
         
         return ru[self] ?? self

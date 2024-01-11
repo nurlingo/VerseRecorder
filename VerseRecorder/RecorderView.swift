@@ -106,11 +106,83 @@ struct RecorderListView: View {
                             
                             HStack {
                                 
+                                if let label = recorderVM.rangeRecording.getTrackRecordingLabel(track.id) {
+
+                                    HStack {
+                                        switch label {
+                                        case .correct:
+                                            Image(systemName: "checkmark.circle")
+                                                .resizable()
+                                                .symbolRenderingMode(.palette)
+                                                .foregroundStyle(.green, .primary)
+                                                .frame(width:32,height:32)
+                                        case .in_correct:
+                                            Image(systemName: "xmark.circle")
+                                                .resizable()
+                                                .symbolRenderingMode(.palette)
+                                                .foregroundStyle(.yellow, .primary)
+                                                .frame(width:32,height:32)
+                                        case .not_related_quran:
+                                            Image(systemName: "exclamationmark.circle")
+                                                .resizable()
+                                                .symbolRenderingMode(.palette)
+                                                .foregroundStyle(.red, .primary)
+                                                .frame(width:32,height:32)
+                                        case .not_match_aya:
+                                            Image(systemName: "arrow.left.arrow.right")
+                                                .resizable()
+                                                .symbolRenderingMode(.palette)
+                                                .foregroundStyle(.red, .primary)
+                                                .frame(width:32,height:32)
+                                        case .multiple_aya:
+                                            Image(systemName: "number.circle")
+                                                .resizable()
+                                                .symbolRenderingMode(.palette)
+                                                .foregroundStyle(.red, .primary)
+                                                .frame(width:32,height:32)
+                                        case .in_complete:
+                                            Image(systemName: "ellipsis.circle")
+                                                .resizable()
+                                                .symbolRenderingMode(.palette)
+                                                .foregroundStyle(.red, .primary)
+                                                .frame(width:32,height:32)
+                                        }
+                                        
+                                        
+                                    }.onTapGesture {
+                                        self.recorderVM.isExplainingLabel = true
+                                    }
+                                    .alert(isPresented: $recorderVM.isExplainingLabel) {
+                                        Alert(
+                                            title: Text(track.id + " " + "recording".localized()),
+                                            message: Text(label.rawValue.localized()),
+                                            dismissButton: .default(Text("OK"))
+                                        )
+                                    }
+                                    
+                                } else if recorderVM.recordingUploaded(track.id) {
+                                    Image(systemName: "hourglass.circle")
+                                        .resizable()
+                                        .symbolRenderingMode(.palette)
+                                        .foregroundStyle(.gray, .primary)
+                                        .frame(width:32,height:32)
+                                        .onTapGesture {
+                                            self.recorderVM.isExplainingLabel = true
+                                        }
+                                        .alert(isPresented: $recorderVM.isExplainingLabel) {
+                                            Alert(
+                                                title: Text(track.id + " " + "recording".localized()),
+                                                message: Text("Waiting to be checked".localized()),
+                                                dismissButton: .default(Text("OK"))
+                                            )
+                                        }
+                                }
+                                
                                 VStack {
                                     if recorderVM.recordingExists(track.id) {
                                         Image(systemName: "recordingtape.circle")
                                             .symbolRenderingMode(.palette)
-                                            .foregroundStyle(.red, .primary)
+                                            .foregroundStyle(.blue, .primary)
                                             .frame(width:16,height:16)
                                     }
                                     Spacer()

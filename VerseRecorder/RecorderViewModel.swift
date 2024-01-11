@@ -27,6 +27,7 @@ public class RecorderViewModel: NSObject, ObservableObject, AVAudioPlayerDelegat
     @Published var isRecording: Bool = false
     @Published var isUploading: Bool = false
     @Published var isShowingTransliteration = false
+    @Published var isExplainingLabel = false
 
     lazy var uploader = UploaderService(credentials: credentials, clientStorage: clientStorage)
     
@@ -56,6 +57,14 @@ public class RecorderViewModel: NSObject, ObservableObject, AVAudioPlayerDelegat
         super.init()
         setupPlayer()
         registerForInterruptions()
+        
+        if isAnOldRecording {
+            self.uploader.fetchRangeRecordingLabels(self.rangeRecording, actionAfterEachTrack:  {
+                DispatchQueue.main.async {
+                    self.activeItemId = self.activeItemId
+                }
+            })
+        }
         
         let notificationCenter = NotificationCenter.default
         notificationCenter.addObserver(self,
@@ -177,9 +186,13 @@ public class RecorderViewModel: NSObject, ObservableObject, AVAudioPlayerDelegat
         
         isUploading = true
         uploader.uploadRangeRecording(rangeRecording, actionAfterUploadingEachTrack: {
-            self.activeItemId = self.activeItemId
+            DispatchQueue.main.async {
+                self.activeItemId = self.activeItemId
+            }
         }, completion: {
-            self.isUploading = false
+            DispatchQueue.main.async {
+                self.isUploading = false
+            }
         })
     }
     
@@ -222,6 +235,10 @@ public class RecorderViewModel: NSObject, ObservableObject, AVAudioPlayerDelegat
     
     public func recordingUploaded(_ trackId: String) -> Bool {
         rangeRecording.trackRecordingUploaded(trackId)
+    }
+    
+    public func getRecordingLabel(_ trackId: String) -> TrackRecording.RecitationLabel? {
+        rangeRecording.getTrackRecordingLabel(trackId)
     }
     
     public func resetPlayer() {

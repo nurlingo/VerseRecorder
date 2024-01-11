@@ -111,14 +111,32 @@ public class RangeRecording: Codable, Identifiable {
         RecordingStorage.shared.deleteRecording("\(id.uuidString)-\(trackId)")
         tracks[trackId] = nil
     }
+    
+    func getTrackRecordingLabel(_ trackId: String) -> TrackRecording.RecitationLabel? {
+        tracks[trackId]?.label
+    }
 }
 
 
 public struct TrackRecording: Codable, Identifiable {
     public let id: String
     public var remoteId: String?
+    public var label: RecitationLabel?
+
+    public enum RecitationLabel: String, Codable {
+        case correct // checkmark.circle
+        case in_correct // xmark.circle
+        case not_related_quran // exclamationmark.circle
+        case not_match_aya // arrow.left.arrow.right
+        case multiple_aya // number.circle
+        case in_complete // ellipsis.circle
+    }
     
-    func updatedRecording(with remoteId: String) -> TrackRecording {
-        TrackRecording(id: id, remoteId: remoteId)
+    func updatedRecordingWithRemoteId(_ remoteId: String) -> TrackRecording {
+        TrackRecording(id: id, remoteId: remoteId, label: label)
+    }
+    
+    func updatedRecordingWithLabel(_ labelString: String) -> TrackRecording {
+        TrackRecording(id: id, remoteId: remoteId, label: RecitationLabel(rawValue: labelString))
     }
 }
