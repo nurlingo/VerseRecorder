@@ -81,9 +81,9 @@ class Storage: NSObject {
     
 }
 
-class RecordingStorage {
+class RangeRecordingStorage {
     
-    static let shared = RecordingStorage()
+    static let shared = RangeRecordingStorage()
     
     private let fileManager = FileManager.default
         

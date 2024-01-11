@@ -58,7 +58,7 @@ struct ListView: View {
                             Storage.shared.store(selectedList.rawValue, forKey: "selectedList")
                         }
                     } else {
-                        ForEach(RecordingStorage.shared.getRecordings()) { recording in
+                        ForEach(RangeRecordingStorage.shared.getRecordings()) { recording in
                             
                             HStack(alignment: .center) {
                                 Button(action: {
@@ -107,7 +107,7 @@ struct ListView: View {
                                 }
                                 .buttonStyle(PlainButtonStyle())
                                 .sheet(isPresented: $showShareSheet) {
-                                    ShareSheet(itemsToShare: [recording.url])
+                                    ShareSheet(itemsToShare: [recording.storageUrl])
                                 }
                                 
                             }

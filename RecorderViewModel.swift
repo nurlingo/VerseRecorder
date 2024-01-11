@@ -15,8 +15,8 @@ public class RecorderViewModel: PrayerViewModel {
     @Published var activeRecording: RangeRecording?
 
     private var audioRecorder: AVAudioRecorder?
-    lazy var recordingStorage: RecordingStorage = RecordingStorage.shared
-    lazy var uploader: UploaderService = UploaderService(credentials: credentials)
+    lazy var rangeRecordingStorage: RangeRecordingStorage = RangeRecordingStorage.shared
+    lazy var uploader: QuranAppUploader = QuranAppUploader()
 
     override public init(ayahs: [AyahPart]) {
         super.init(ayahs: ayahs)
@@ -29,7 +29,7 @@ public class RecorderViewModel: PrayerViewModel {
     
     public func playRecording(_ recording: RangeRecording) {
         
-        let url = recordingStorage.getPath(for: recording.id.uuidString)
+        let url = rangeRecordingStorage.getPath(for: recording.id.uuidString)
         
         self.activeRecording = recording
         self.isPlaying = true
@@ -56,7 +56,9 @@ public class RecorderViewModel: PrayerViewModel {
             if let activeRecording = activeRecording {
                 print(activeRecording.date)
                 setInfoMessage("Recording saved")
-//                uploader.upload(activeRecording)
+                Task {
+                    await uploader.upload(activeRecording)
+                }
             }
         } else if !(Storage.shared.retrieve(forKey: "consent_given") as? Bool ?? false) {
             stopPlayer()
@@ -68,7 +70,7 @@ public class RecorderViewModel: PrayerViewModel {
     }
     
     public func recordingExists(_ recordingId: String) -> Bool {
-        recordingStorage.recordingExists(recordingId)
+        rangeRecordingStorage.recordingExists(recordingId)
     }
     
     public func resetRecorder() {
@@ -85,8 +87,8 @@ public class RecorderViewModel: PrayerViewModel {
         stopPlayer()
         
         activeRecording = RangeRecording(start: start, end: end)
-        recordingStorage.addRecording(activeRecording!)
-        let audioFilename = recordingStorage.getPath(for: activeRecording!.id.uuidString)
+        rangeRecordingStorage.addRecording(activeRecording!)
+        let audioFilename = rangeRecordingStorage.getPath(for: activeRecording!.id.uuidString)
         
         let settings = [
             AVFormatIDKey: Int(kAudioFormatMPEG4AAC),

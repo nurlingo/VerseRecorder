@@ -83,7 +83,7 @@ public struct RangeRecording: Codable, Identifiable {
         return dateString
     }
     
-    var url: URL {
-        RecordingStorage.shared.getPath(for: id.uuidString)
+    var storageUrl: URL {
+        RangeRecordingStorage.shared.getPath(for: id.uuidString)
     }
 }
