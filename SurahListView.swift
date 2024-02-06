@@ -25,17 +25,19 @@ public class QuranMetaViewModel: ObservableObject {
     init() {
         self.rangeRecordings = RecordingStorage.shared.getRecordingRanges()
         Task {
-            try? await ContentStorage.shared.loadMasahif()
+            DispatchQueue.main.async {
+                self.isLoading = true
+            }
             await loadMeta()
+            DispatchQueue.main.async {
+                self.isLoading = false
+            }
         }
         
     }
     
     
     func loadMeta() async {
-        DispatchQueue.main.async {
-            self.isLoading = true
-        }
         do {
             let meta = try await ContentStorage.shared.fetchMeta()
             let surahs = meta.data.surahs.references.filter({$0.number == 1 || $0.number >= 78}).compactMap({ ContentStorage.shared.surahs[$0.id] })
@@ -46,9 +48,6 @@ public class QuranMetaViewModel: ObservableObject {
             DispatchQueue.main.async {
                 self.errorMessage = error.localizedDescription
             }
-        }
-        DispatchQueue.main.async {
-            self.isLoading = false
         }
     }
 }
