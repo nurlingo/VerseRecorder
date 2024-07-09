@@ -94,6 +94,7 @@ extension String {
             "in_complete": "Incomplete: the recording is missing a part of the ayah",
             "Feedback explained": "Feedback explaination",
             "Waiting to be checked": "Waiting to be checked",
+            "No recordings": "Seems like you don't have any recordings...",
         ]
         
         return en[self] ?? self
@@ -121,6 +122,7 @@ extension String {
             "in_complete": "Неполный аят: в записи отсутствует часть аята.",
             "Feedback explained": "Пояснение к записи",
             "Waiting to be checked": "Ждет проверки",
+            "No recordings": "Записей не обнаружено...",
         ]
         
         return ru[self] ?? self

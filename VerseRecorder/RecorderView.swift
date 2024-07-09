@@ -376,37 +376,37 @@ struct RecorderControlPanel: View {
                     
                     Spacer()
                     
-                    if !recorderVM.isRecording,
-                       !recorderVM.isUploading,
-                       recorderVM.hasTrackRecordingsToUpload {
-                        Button {
-                            print("upload")
-                            isConfirmingUpload = true
-                        } label: {
-                            
-                            VStack {
-                                Image(systemName: "icloud.and.arrow.up")
-                                    .resizable()
-                                    .scaledToFit()
-                                    .symbolRenderingMode(.palette)
-                                    .foregroundStyle(.blue, .primary)
-                                    .font(.system(size: 16, weight: .light))
-                                    .frame(width: 40, height: geo.size.height * 0.4)
-                            }
-                            .frame(width: geo.size.height * 0.8, height: geo.size.height * 0.8)
-                        }
-                        .buttonStyle(PlainButtonStyle())
-                        .confirmationDialog("Upload Audios".localized(),
-                                            isPresented: $isConfirmingUpload) {
-                            Button("Upload".localized()) {
-                                recorderVM.handleUploadButton()
-                            }
-                        } message: {
-                            Text("Upload Audios".localized() + "\n" + "Upload Explanation".localized())
-                        }
-                    } else {
+//                    if !recorderVM.isRecording,
+//                       !recorderVM.isUploading,
+//                       recorderVM.hasTrackRecordingsToUpload {
+//                        Button {
+//                            print("upload")
+//                            isConfirmingUpload = true
+//                        } label: {
+//                            
+//                            VStack {
+//                                Image(systemName: "icloud.and.arrow.up")
+//                                    .resizable()
+//                                    .scaledToFit()
+//                                    .symbolRenderingMode(.palette)
+//                                    .foregroundStyle(.blue, .primary)
+//                                    .font(.system(size: 16, weight: .light))
+//                                    .frame(width: 40, height: geo.size.height * 0.4)
+//                            }
+//                            .frame(width: geo.size.height * 0.8, height: geo.size.height * 0.8)
+//                        }
+//                        .buttonStyle(PlainButtonStyle())
+//                        .confirmationDialog("Upload Audios".localized(),
+//                                            isPresented: $isConfirmingUpload) {
+//                            Button("Upload".localized()) {
+//                                recorderVM.handleUploadButton()
+//                            }
+//                        } message: {
+//                            Text("Upload Audios".localized() + "\n" + "Upload Explanation".localized())
+//                        }
+//                    } else {
                         Spacer().frame(width: geo.size.height * 0.8)
-                    }
+//                    }
                     
                     
                     

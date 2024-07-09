@@ -55,19 +55,16 @@ public class QuranMetaViewModel: ObservableObject {
 @available(iOS 15.0.0, *)
 public struct SurahListView: View {
     
-    private let title: String
     public var clientStorage: ClientStorage
     @StateObject private var viewModel = QuranMetaViewModel()
     
     
-    public init(title: String, clientStorage: ClientStorage) {
-        self.title = title
+    public init(clientStorage: ClientStorage) {
         self.clientStorage = clientStorage
     }
     
     public var body: some View {
         
-        NavigationView {
             
             VStack {
                 Picker("Segment", selection: $viewModel.selectedSegment) {
@@ -124,11 +121,32 @@ public struct SurahListView: View {
                             }
 
                         }
+                        .onDelete(perform: delete)
 
                     }
+                    .overlay(Group {
+                        if viewModel.rangeRecordings.isEmpty {
+                            Text("No recordings".localized())
+                        }
+                    })
+                    .onAppear {
+                        viewModel.rangeRecordings = RecordingStorage.shared.getRecordingRanges()
+                    }
                 }
-            }
-            .navigationTitle(title)
         }
+    }
+    
+    func delete(at offsets: IndexSet) {
+        
+        
+        for index in offsets.indices {
+            let offset = offsets[index]
+            if offset < viewModel.rangeRecordings.count {
+                viewModel.rangeRecordings[offset].deleteRange()
+            }
+        }
+
+        viewModel.rangeRecordings = RecordingStorage.shared.getRecordingRanges()
+        
     }
 }
