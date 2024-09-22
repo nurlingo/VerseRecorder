@@ -28,6 +28,8 @@ public class RecorderViewModel: NSObject, ObservableObject, AVAudioPlayerDelegat
     @Published var isUploading: Bool = false
     @Published var isShowingTransliteration = false
     @Published var isExplainingLabel = false
+    
+    let credentials = Credentials(remoteAPI: "none", username: "none", password: "none")
 
     lazy var uploader = UploaderService(credentials: credentials, clientStorage: clientStorage)
     

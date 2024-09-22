@@ -231,7 +231,7 @@ class PlayerViewModel: NSObject, ObservableObject, AVAudioPlayerDelegate {
     
     @Published var speed: Float = 1.0 {
         didSet {
-            UserDefaults.standard.set(speed, forKey: "playSpeed")
+            UserDefaults.standard.set(speed, forKey: ContentStorage.shared.playSpeedKey)
             UserDefaults.standard.synchronize()
             
             if let player = player, player.isPlaying {
@@ -588,7 +588,7 @@ class PlayerViewModel: NSObject, ObservableObject, AVAudioPlayerDelegate {
 extension PlayerViewModel {
     
     private func setupPlayer() {
-        if let actualSpeedValue = UserDefaults.standard.object(forKey: "playSpeed") as? Float {
+        if let actualSpeedValue = UserDefaults.standard.object(forKey: ContentStorage.shared.playSpeedKey) as? Float {
             self.speed = actualSpeedValue
         }
         

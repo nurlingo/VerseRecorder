@@ -19,6 +19,8 @@ public class ContentStorage: NSObject {
     var enMushaf: Mushaf?
     var ruMushaf: Mushaf?
     
+    var playSpeedKey = "play_speed"
+    
     override init() {
         super.init()        
     }
